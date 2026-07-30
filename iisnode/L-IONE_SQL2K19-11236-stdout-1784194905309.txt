@@ -1,0 +1,4 @@
+
+✅ Đang chạy: http://localhost:\\.\pipe\6fd1466a-6e69-411e-85c7-8e6924ccb562
+   Truy cập nội bộ: http://<IP_MÁY_CHỦ>:\\.\pipe\6fd1466a-6e69-411e-85c7-8e6924ccb562
+

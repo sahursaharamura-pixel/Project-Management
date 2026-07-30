@@ -1,0 +1,16 @@
+{
+  "name": "quan-ly-du-an",
+  "version": "1.0.0",
+  "description": "Hệ thống quản lý dự án",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "express": "^4.18.2",
+    "express-mysql-session": "^3.0.3",
+    "express-session": "^1.19.0",
+    "mysql2": "^3.22.6"
+  }
+}

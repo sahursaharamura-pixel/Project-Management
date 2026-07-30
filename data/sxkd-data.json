@@ -1,0 +1,246 @@
+{
+  "tscd": [
+    {
+      "id": "t1",
+      "stt": 1,
+      "title": "Nâng cấp hệ thống kiểm kê vật tư, tài sản, công cụ dụng cụ cho Cơ quan Tổng công ty Phát điện 2 và các đơn vị hạch toán phụ thuộc",
+      "note": "Nâng cấp phiên bản phần mềm cho hệ thống",
+      "budget": 2600,
+      "unit": "Ban KHCNCĐS",
+      "status": ""
+    },
+    {
+      "id": "t2",
+      "stt": 2,
+      "title": "Nâng cấp và triển khai hệ thống lịch tuần, lịch xe, lịch công tác khác trong Tổng công ty Phát điện 2",
+      "note": "Xây dựng lịch tuần, lịch xe, lịch công tác khác dùng chung toàn EVNGENCO2 (tập trung)",
+      "budget": 1500,
+      "unit": "Ban KHCNCĐS",
+      "status": ""
+    },
+    {
+      "id": "t3",
+      "stt": 3,
+      "title": "Phần mềm quản lý kế hoạch, dự án và công việc Tổng công ty Phát điện 2",
+      "note": "Đã được HĐQT thông qua chủ trương tại NQ 337/NQ-HĐQT ngày 21/7/2025",
+      "budget": 0,
+      "unit": "Ban KHCNCĐS",
+      "status": "hold",
+      "statusLabel": "Không triển khai (thay bằng mục 11)"
+    },
+    {
+      "id": "t4",
+      "stt": 4,
+      "title": "Cung cấp hàng hóa, thiết lập hệ thống, tổ chức đào tạo hướng dẫn sử dụng hệ thống đảm bảo an toàn an ninh thông tin cho các nhà máy điện thuộc EVNGENCO2",
+      "note": "",
+      "budget": 0,
+      "unit": "Ban KHCNCĐS",
+      "status": "review",
+      "statusLabel": "Chưa có khái toán"
+    },
+    {
+      "id": "t5",
+      "stt": 5,
+      "title": "Thiết bị quản lý truy cập Network Access Control (NAC)",
+      "note": "2 Thiết bị Firewall Appliance + 2 Firewall License",
+      "budget": 150,
+      "unit": "Ban KHCNCĐS",
+      "status": ""
+    },
+    {
+      "id": "t6",
+      "stt": 6,
+      "title": "Thiết bị tường lửa thế hệ mới",
+      "note": "Thay thế thiết bị tường lửa Check Point 3200 không còn hỗ trợ từ NCC",
+      "budget": 870,
+      "unit": "Ban KHCNCĐS",
+      "status": ""
+    },
+    {
+      "id": "t7",
+      "stt": 7,
+      "title": "Ứng dụng trí tuệ nhân tạo để tự động hoá nghiệp vụ liên quan CNTT trong Tổng công ty Phát điện 2",
+      "note": "Theo báo cáo số 1819/EVNGENCO2-KTSX ngày 12/5/2025",
+      "budget": 1200,
+      "unit": "Ban KHCNCĐS",
+      "status": ""
+    },
+    {
+      "id": "t8",
+      "stt": 8,
+      "title": "Hệ thống lưu trữ dữ liệu trực tuyến của EVNGENCO2",
+      "note": "Lưu trữ dữ liệu, máy chủ quan trọng theo chính sách 3-2-1-0",
+      "budget": 5000,
+      "unit": "Ban KHCNCĐS",
+      "status": ""
+    },
+    {
+      "id": "t9",
+      "stt": 9,
+      "title": "Gói vật tư chiến lược phục vụ quản lý vận hành hệ thống VTCNTT cơ quan TCT",
+      "note": "Thiết bị dự phòng chiến lược ứng cứu sự cố hệ thống VTCNTT TCT",
+      "budget": 5000,
+      "unit": "Ban KHCNCĐS",
+      "status": ""
+    },
+    {
+      "id": "t10",
+      "stt": 10,
+      "title": "Hệ thống cổng Portal của EVNGENCO2",
+      "note": "Xây dựng cổng Portal tích hợp ứng dụng thông minh, trí tuệ nhân tạo quản lý điều hành",
+      "budget": 8000,
+      "unit": "Ban KHCNCĐS",
+      "status": ""
+    },
+    {
+      "id": "t11",
+      "stt": 11,
+      "title": "Triển khai Hệ sinh thái văn phòng số trên nền tảng Microsoft Office 365",
+      "note": "Thay đổi từ hạng mục 'PM quản lý KH, dự án, công việc' (dòng 3) do thay đổi mục tiêu, nội dung",
+      "budget": 595,
+      "unit": "Ban KHCNCĐS",
+      "status": ""
+    },
+    {
+      "id": "t1784517325985611o",
+      "stt": "12",
+      "unit": "Ban KHCNCĐS",
+      "title": "Test",
+      "note": "dsaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "budget": 300,
+      "status": "",
+      "statusLabel": ""
+    }
+  ],
+  "cphd": [
+    {
+      "id": "c1",
+      "stt": "7.1",
+      "title": "Gia hạn license và dịch vụ hỗ trợ kỹ thuật thiết bị firewall tại Sông Bung, An Khê - Ka Nak, dịch vụ hỗ trợ kỹ thuật hệ thống ESM tại Tổng công ty",
+      "budget": 1600,
+      "note": "Phần khối lượng phân bổ tại Cơ quan TCT",
+      "status": ""
+    },
+    {
+      "id": "c2",
+      "stt": "7.2",
+      "title": "Gia hạn license và dịch vụ hỗ trợ kỹ thuật hệ thống SOC và hệ thống IPS",
+      "budget": 4024,
+      "note": "",
+      "status": ""
+    },
+    {
+      "id": "c3",
+      "stt": "7.3",
+      "title": "Gia hạn license và dịch vụ hỗ trợ kỹ thuật hệ thống PIM, APT, FW MNGT, Backup & Storage",
+      "budget": 2444,
+      "note": "",
+      "status": ""
+    },
+    {
+      "id": "c4",
+      "stt": "7.4",
+      "title": "Gia hạn license và dịch vụ hỗ trợ kỹ thuật cho các thiết bị tường lửa tại Cơ quan Tổng công ty và các Đơn vị phụ thuộc",
+      "budget": 6036,
+      "note": "",
+      "status": ""
+    },
+    {
+      "id": "c5",
+      "stt": "7.5",
+      "title": "Gia hạn bản quyền hệ thống SDWAN",
+      "budget": 2700,
+      "note": "",
+      "status": ""
+    },
+    {
+      "id": "c6",
+      "stt": "7.6",
+      "title": "Rà quét đánh giá điểm yếu, lỗ hổng bảo mật cho các hệ thống năm 2026",
+      "budget": 800,
+      "note": "",
+      "status": ""
+    },
+    {
+      "id": "c7",
+      "stt": "7.7",
+      "title": "Thuê chuyên gia ngoài và đại diện của các tổ chức uy tín hỗ trợ xây dựng Trung tâm Điều khiển và Giám sát từ xa các nhà máy điện",
+      "budget": 300,
+      "note": "",
+      "status": ""
+    },
+    {
+      "id": "c8",
+      "stt": "7.8",
+      "title": "Gia hạn license dịch vụ email domain evngenco2.vn",
+      "budget": 417,
+      "note": "",
+      "status": "done",
+      "statusLabel": "đã làm"
+    },
+    {
+      "id": "c9",
+      "stt": "7.9",
+      "title": "Gia hạn dịch vụ hỗ trợ kỹ thuật hệ thống Oracle",
+      "budget": 549,
+      "note": "",
+      "status": "done",
+      "statusLabel": "đã làm"
+    },
+    {
+      "id": "c10",
+      "stt": "7.10",
+      "title": "Gia hạn phần mềm bản quyền Office 365",
+      "budget": 478,
+      "note": "",
+      "status": "done",
+      "statusLabel": "đã làm"
+    },
+    {
+      "id": "c11",
+      "stt": "7.11",
+      "title": "Dịch vụ bảo trì các phần mềm dùng chung của EVNICT",
+      "budget": 408,
+      "note": "",
+      "status": ""
+    },
+    {
+      "id": "c12",
+      "stt": "7.12",
+      "title": "Dịch vụ diễn tập thực chiến hệ thống CNTT EVNGENCO2",
+      "budget": 500,
+      "note": "",
+      "status": ""
+    },
+    {
+      "id": "c13",
+      "stt": "7.13",
+      "title": "Dịch vụ duy trì, tổ chức đánh giá, cấp giấy chứng nhận hệ thống an toàn thông tin (ISMS) theo ISO/IEC 27001:2022",
+      "budget": 368,
+      "note": "",
+      "status": ""
+    },
+    {
+      "id": "c14",
+      "stt": "7.15",
+      "title": "Chi phí thực hiện Hợp đồng triển khai hệ thống E-Payment và dịch vụ hỗ trợ vận hành phân hệ tính lương (Payroll)",
+      "budget": 217,
+      "note": "Bổ sung theo báo cáo số 55/KHCNCĐS ngày 14/01/2026",
+      "status": ""
+    }
+  ],
+  "doichieu": [
+    {
+      "id": "d1",
+      "tsc": "6. Thiết bị tường lửa thế hệ mới (mua thiết bị mới thay Check Point 3200) - 870tr",
+      "cp": "7.4 Gia hạn license & DVHT KT cho các thiết bị tường lửa tại CQ TCT và đơn vị phụ thuộc - 6.036tr",
+      "note": "Không trùng đầu mục (một bên mua mới thiết bị/TSCĐ, một bên gia hạn license/dịch vụ cho thiết bị đang vận hành), nhưng cùng chủ đề 'tường lửa' - nên đối chiếu tránh chồng lấn phạm vi/nguồn vốn."
+    },
+    {
+      "id": "d2",
+      "tsc": "11. Triển khai Hệ sinh thái văn phòng số trên nền Microsoft Office 365 - 595tr",
+      "cp": "7.10 Gia hạn phần mềm bản quyền Office 365 - 478tr",
+      "note": "Không trùng đầu mục (một bên đầu tư/triển khai hệ sinh thái mới, một bên gia hạn bản quyền hiện hữu), nhưng cùng nền tảng Office 365 - nên đối chiếu phạm vi công việc."
+    }
+  ]
+}

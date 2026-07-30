@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Báo cáo — Quản lý dự án</title>
+<link rel="icon" href="/logo.png">
+<link rel="stylesheet" href="/css/report.css">
+</head>
+<body>
+
+<!-- ══════════ THANH CÔNG CỤ (không in) ══════════ -->
+<header class="bar no-print">
+  <a href="/" class="btn ghost">← Hệ thống</a>
+
+  <label class="fld">
+    <span>Phạm vi</span>
+    <select id="scope">
+      <option value="all">Toàn bộ dự án</option>
+    </select>
+  </label>
+
+  <div class="opts">
+    <label><input type="checkbox" id="o-chart"  checked> Biểu đồ</label>
+    <label><input type="checkbox" id="o-alert"  checked> Cần chú ý</label>
+    <label><input type="checkbox" id="o-detail" checked> Chi tiết dự án</label>
+    <label><input type="checkbox" id="o-log"    checked> Nhật ký</label>
+  </div>
+
+  <div class="grow"></div>
+  <button class="btn primary" id="btn-print">🖨 In / Lưu PDF</button>
+</header>
+
+<p class="tip no-print">
+  Trong hộp thoại in: chọn máy in <b>“Lưu dưới dạng PDF”</b> và bật
+  <b>“Đồ họa nền”</b> (Background graphics) để giữ màu biểu đồ.
+</p>
+
+<!-- ══════════ NỘI DUNG BÁO CÁO ══════════ -->
+<main id="doc" class="doc">
+  <div class="state">Đang tải dữ liệu…</div>
+</main>
+
+<script src="/js/report.js"></script>
+</body>
+</html>

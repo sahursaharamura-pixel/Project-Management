@@ -1,0 +1,87 @@
+<html>
+<head>
+    <title>iisnode logs</title>
+    <style type="text/css">
+        body
+        {
+            font-family: "Trebuchet MS" , Arial, Helvetica, sans-serif;
+        }
+        table
+        {
+            border-collapse: collapse;
+        }
+        td, th
+        {
+            border: 1px solid lightgray;
+            padding: 3px 7px 2px 7px;
+        }
+        th
+        {
+            text-align: left;
+            padding-top: 5px;
+            padding-bottom: 4px;
+            background-color: Gray;
+            color: #ffffff;
+        }
+        td.stderr
+        {
+            color: Red;
+        }
+    </style>
+</head>
+<body>
+    <table id="logFilesTable">
+        <tr>
+            <th>
+                Computer name
+            </th>
+            <th>
+                PID
+            </th>
+            <th>
+                Type
+            </th>
+            <th>
+                Created
+            </th>
+            <th>
+                Link
+            </th>
+        </tr>
+    </table>
+    <p id="lastUpdated"></p>
+    <script type="text/javascript">
+
+        // this is replaced with actual data at runtime by code in interceptor.js
+        var logFiles = [{"file":"L-IONE_SQL2K19-11236-stderr-1784194905314.txt","computername":"L-IONE_SQL2K19","pid":11236,"type":"stderr","created":1784194905314},{"file":"L-IONE_SQL2K19-11236-stdout-1784194905309.txt","computername":"L-IONE_SQL2K19","pid":11236,"type":"stdout","created":1784194905309},{"file":"L-IONE_SQL2K19-11728-stderr-1784188509827.txt","computername":"L-IONE_SQL2K19","pid":11728,"type":"stderr","created":1784188509827},{"file":"L-IONE_SQL2K19-11728-stdout-1784188509822.txt","computername":"L-IONE_SQL2K19","pid":11728,"type":"stdout","created":1784188509822},{"file":"L-IONE_SQL2K19-11976-stderr-1784191340361.txt","computername":"L-IONE_SQL2K19","pid":11976,"type":"stderr","created":1784191340361},{"file":"L-IONE_SQL2K19-11976-stdout-1784191340355.txt","computername":"L-IONE_SQL2K19","pid":11976,"type":"stdout","created":1784191340355},{"file":"L-IONE_SQL2K19-12488-stderr-1784194589701.txt","computername":"L-IONE_SQL2K19","pid":12488,"type":"stderr","created":1784194589701},{"file":"L-IONE_SQL2K19-12488-stdout-1784194589696.txt","computername":"L-IONE_SQL2K19","pid":12488,"type":"stdout","created":1784194589696},{"file":"L-IONE_SQL2K19-13132-stderr-1784250030274.txt","computername":"L-IONE_SQL2K19","pid":13132,"type":"stderr","created":1784250030274},{"file":"L-IONE_SQL2K19-13132-stdout-1784250030269.txt","computername":"L-IONE_SQL2K19","pid":13132,"type":"stdout","created":1784250030269},{"file":"L-IONE_SQL2K19-13872-stderr-1784195513872.txt","computername":"L-IONE_SQL2K19","pid":13872,"type":"stderr","created":1784195513872},{"file":"L-IONE_SQL2K19-13872-stdout-1784195513868.txt","computername":"L-IONE_SQL2K19","pid":13872,"type":"stdout","created":1784195513868},{"file":"L-IONE_SQL2K19-15184-stderr-1784192479520.txt","computername":"L-IONE_SQL2K19","pid":15184,"type":"stderr","created":1784192479520},{"file":"L-IONE_SQL2K19-15184-stdout-1784192479515.txt","computername":"L-IONE_SQL2K19","pid":15184,"type":"stdout","created":1784192479515},{"file":"L-IONE_SQL2K19-16388-stderr-1784191095978.txt","computername":"L-IONE_SQL2K19","pid":16388,"type":"stderr","created":1784191095978},{"file":"L-IONE_SQL2K19-16388-stdout-1784191095973.txt","computername":"L-IONE_SQL2K19","pid":16388,"type":"stdout","created":1784191095973},{"file":"L-IONE_SQL2K19-17108-stderr-1784186700694.txt","computername":"L-IONE_SQL2K19","pid":17108,"type":"stderr","created":1784186700694},{"file":"L-IONE_SQL2K19-17108-stdout-1784186700689.txt","computername":"L-IONE_SQL2K19","pid":17108,"type":"stdout","created":1784186700689},{"file":"L-IONE_SQL2K19-2780-stderr-1784192581357.txt","computername":"L-IONE_SQL2K19","pid":2780,"type":"stderr","created":1784192581357},{"file":"L-IONE_SQL2K19-2780-stdout-1784192581351.txt","computername":"L-IONE_SQL2K19","pid":2780,"type":"stdout","created":1784192581351},{"file":"L-IONE_SQL2K19-6708-stderr-1784195241371.txt","computername":"L-IONE_SQL2K19","pid":6708,"type":"stderr","created":1784195241371},{"file":"L-IONE_SQL2K19-6708-stdout-1784195241366.txt","computername":"L-IONE_SQL2K19","pid":6708,"type":"stdout","created":1784195241366}];
+        var lastUpdated = 1784250030964;
+        var date = new Date();
+
+        date.setTime(lastUpdated);
+        document.getElementById('lastUpdated').innerHTML = 'Index was last updated ' + date;
+
+        logFiles.sort(function (a, b) {
+            return b.created - a.created;
+        });
+
+        var logFilesTable = document.getElementById("logFilesTable");
+        for (var i = 0; i < logFiles.length; i++) {
+            var logFile = logFiles[i];
+            date.setTime(logFile.created);
+            var row = logFilesTable.insertRow(-1);
+            var computerNameCell = row.insertCell(0);
+            var pidCell = row.insertCell(1);
+            var typeCell = row.insertCell(2);
+            var dateCell = row.insertCell(3);
+            var logCell = row.insertCell(4);
+            computerNameCell.innerHTML = logFile.computername;
+            pidCell.innerHTML = logFile.pid.toString();
+            typeCell.innerHTML = logFile.type;
+            typeCell.setAttribute('class', logFile.type);
+            dateCell.innerHTML = date.toString();
+            logCell.innerHTML = '<a href="' + logFile.file + '">log</a>';
+        };
+
+    </script>
+</body>
+</html>

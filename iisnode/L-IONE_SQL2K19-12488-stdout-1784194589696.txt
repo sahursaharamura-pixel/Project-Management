@@ -1,0 +1,4 @@
+
+✅ Đang chạy: http://localhost:\\.\pipe\dac20444-07af-4853-8e5a-ed3adff09be9
+   Truy cập nội bộ: http://<IP_MÁY_CHỦ>:\\.\pipe\dac20444-07af-4853-8e5a-ed3adff09be9
+

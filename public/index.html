@@ -132,7 +132,7 @@
           <div class="proj-form-wrap">
             <div class="fg span2"><label>Tên dự án <span class="req">*</span></label><input id="pm-name" placeholder="VD: Đường tỉnh 921"></div>
             <div class="fg"><label>Mã dự án</label><input id="pm-code" placeholder="VD: DA005"></div>
-            <div class="fg"><label>Kinh phí tổng (VNĐ)</label><input type="number" id="pm-budget" placeholder="0"></div>
+            <div class="fg" style="display:none"><label>Kinh phí tổng (VNĐ)</label><input type="number" id="pm-budget" placeholder="0"></div>
             <div class="fg"><label>Ngày bắt đầu</label><input type="date" id="pm-start"></div>
             <div class="fg"><label>Ngày hoàn thành dự kiến</label><input type="date" id="pm-end"></div>
             <div class="fg span2"><label>Ghi chú</label><input id="pm-note" placeholder="Mô tả ngắn về dự án"></div>
@@ -393,7 +393,7 @@
       <!-- Tình hình triển khai gần đây -->
       <div class="card">
         <div class="card-head">📋 Tình hình triển khai gần đây</div>
-        <div id="pdh-tinh-hinh" style="max-height:480px;overflow-y:auto"></div>
+        <div id="pdh-tinh-hinh" style="overflow-y:auto"></div>
       </div>
 
       <!-- Bảng hạng mục -->
@@ -460,7 +460,6 @@
     <button onclick="sendQuick('Tóm tắt tình hình tổng thể tất cả dự án')">📊 Tổng thể</button>
     <button onclick="sendQuick('Dự án và hạng mục nào đang bị chậm tiến độ hoặc quá hạn?')">🚨 Có vấn đề</button>
     <button onclick="sendQuick('Hạng mục nào sắp đến hạn trong 7 ngày tới?')">📅 Sắp hạn</button>
-    <button onclick="sendQuick('Tình hình giải ngân kinh phí các dự án')">💰 Kinh phí</button>
   </div>
   <div class="chat-input-row">
     <input id="chat-input" placeholder="Hỏi về dự án..." onkeydown="if(event.key==='Enter')sendChat()">

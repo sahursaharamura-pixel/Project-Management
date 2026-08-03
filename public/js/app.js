@@ -443,7 +443,6 @@ async function loadDashboard(){
 
 function renderKPIs(d){
   const t=d.totals;
-  const disbP=t.budget>0?Math.round(t.disbursed/t.budget*100):0;
   const onTime=d.projects.filter(p=>p.overdue===0&&p.slow===0).length;
   const inProg=Math.max(0,(t.total||0)-(t.done||0)-(t.problem||0));
   const avgProg=d.projects.length>0?Math.round(d.projects.reduce((s,p)=>s+(p.progress||0),0)/d.projects.length):0;
@@ -472,12 +471,7 @@ function renderKPIs(d){
       <div class="kpi-label">Chậm / Quá hạn</div>
       <div class="kpi-sub">${t.problem>0?'Cần xử lý ngay':'Không có vấn đề'}</div>
     </div>
-    <div class="kpi k-purple">
-      <div class="kpi-icon">💰</div>
-      <div class="kpi-val">${fmtMoney(t.budget||0)}</div>
-      <div class="kpi-label">Tổng kinh phí dự án</div>
-      <div class="kpi-sub">Giải ngân ${disbP}%</div>
-    </div>`;
+    `;
 }
 
 function renderDonut(byStatus,total){
@@ -570,9 +564,6 @@ function renderProjCards(projs){
           <span>Tiến độ (theo thời lượng HM)</span><b>${pct}%</b>
         </div>
         <div class="pbar"><div class="pbar-fill" style="width:${pct}%;background:linear-gradient(90deg,${col},${col}aa)"></div></div>
-        ${p.budget?`<div style="margin-top:10px;font-size:12px;color:#64748b;display:flex;justify-content:space-between">
-          <span>Kinh phí:</span><b style="color:#0f172a">${fmtMoney(p.budget)}</b>
-        </div>`:''}
       </div>
       <div class="pcard-foot">
         <span>${p.start_date?fmtDate(p.start_date):'—'} → ${p.end_date?fmtDate(p.end_date):'—'}</span>
@@ -918,7 +909,6 @@ function renderProjManageList(){
         <div class="proj-manage-meta">
           ${p.start_date?fmtDate(p.start_date):'?'} → ${p.end_date?fmtDate(p.end_date):'?'}
           &nbsp;·&nbsp; ${p.total||0} HM &nbsp;·&nbsp; ${pct}% HT
-          ${p.budget?` &nbsp;·&nbsp; ${fmtMoney(p.budget)}`:''}
         </div>
       </div>
       <div class="proj-manage-actions">
@@ -1434,7 +1424,6 @@ async function loadArchives(){
         <div class="astat"><div class="astat-val" style="color:#2563eb">${donePct}%</div><div class="astat-label">Tỷ lệ HT</div></div>
         <div class="astat"><div class="astat-val">${p.start_date?fmtDate(p.start_date):'—'}</div><div class="astat-label">Bắt đầu</div></div>
         <div class="astat"><div class="astat-val">${p.end_date?fmtDate(p.end_date):'—'}</div><div class="astat-label">Kế hoạch xong</div></div>
-        <div class="astat"><div class="astat-val">${p.budget?fmtMoney(p.budget):'—'}</div><div class="astat-label">Kinh phí</div></div>
       </div>
 
       <!-- Danh sách hạng mục -->
@@ -1553,6 +1542,7 @@ async function loadProjectDetail(projId){
     renderGantt(d);
     renderPdTinhHinh(d.recentTH);
     renderPdItems(d.items);
+    syncPdHeights();
     // Ẩn nút tour khi load trang mới trong tour
     const btnTour=$('btn-tour-resume');
     if(btnTour) btnTour.style.display='none';
@@ -1587,7 +1577,6 @@ function renderProjDetailHeader(d){
   $('pdh-meta').innerHTML = `
     <span>📁 ${esc(p.code)||'—'}</span>
     <span>📅 ${p.start_date?fmtDate(p.start_date):'—'} → ${p.end_date?fmtDate(p.end_date):'—'}</span>
-    ${p.budget?`<span>💰 ${fmtMoney(p.budget)}</span>`:''}
     ${deadlineStr?`<span>${deadlineStr}</span>`:''}`;
 
   const pColor2 = pct>=80?'#6ee7b7':pct>=50?'#93c5fd':pct>=20?'#fde68a':'#fca5a5';
@@ -1724,6 +1713,26 @@ function renderGantt(d){
     </div>
     <div id="gantt-rows">${rowsHTML}</div>
   </div>`;
+}
+
+/* ── Đồng bộ chiều cao khung Tình hình triển khai với khung Bảng hạng mục ── */
+let _pdHeightObs=null;
+function syncPdHeights(){
+  const leftBody=$('pdh-tinh-hinh');
+  const grid=leftBody&&leftBody.closest('.proj-detail-grid');
+  const rightCard=grid&&grid.children[1];
+  if(!leftBody||!rightCard) return;
+  const apply=()=>{
+    const headH=leftBody.previousElementSibling?leftBody.previousElementSibling.getBoundingClientRect().height:0;
+    const h=rightCard.getBoundingClientRect().height-headH;
+    leftBody.style.maxHeight=Math.max(200,h)+'px';
+  };
+  apply();
+  if(_pdHeightObs) _pdHeightObs.disconnect();
+  if(typeof ResizeObserver!=='undefined'){
+    _pdHeightObs=new ResizeObserver(apply);
+    _pdHeightObs.observe(rightCard);
+  }
 }
 
 /* ── Tình hình triển khai feed ── */

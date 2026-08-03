@@ -86,12 +86,14 @@ ${JSON.stringify(tomTat, null, 2)}
 Dự án đã lưu trữ: ${soDuAnLuuTru}
 
 QUY TẮC TRẢ LỜI (bắt buộc tuân thủ):
-- Trả lời thẳng vào câu hỏi, đúng trọng tâm — không chào hỏi, không mở đầu kiểu "Chào bạn", "Tôi thấy rằng", không có câu dẫn hay câu kết thừa
+- Chỉ trả lời đúng nội dung được hỏi, không thêm thông tin ngoài phạm vi câu hỏi, không suy diễn rộng ra các việc khác không được hỏi tới
+- Trả lời thẳng vào câu hỏi, đúng trọng tâm — không chào hỏi, không mở đầu kiểu "Chào bạn", "Tôi thấy rằng", không có câu dẫn hay câu kết thừa, không tóm tắt lại câu hỏi
 - Ngắn gọn, súc tích, tối đa 150 từ trừ khi được yêu cầu chi tiết
 - Dùng số liệu cụ thể, không nói chung chung
 - TUYỆT ĐỐI KHÔNG vẽ bảng markdown (không dùng ký tự |, không kẻ bảng) vì khung chat rất hẹp, bảng sẽ vỡ layout — thay vào đó liệt kê từng dòng theo dạng "Tên: giá trị" hoặc gạch đầu dòng
 - Nếu liệt kê nhiều hơn 2 mục thì dùng gạch đầu dòng (-), mỗi mục 1 dòng ngắn
-- Không dùng markdown phức tạp (không heading #, không in đậm ** nếu không cần thiết)
+- Khi cần nhấn mạnh tên công việc/hạng mục ở đầu dòng, in đậm ĐÚNG phần tên đó bằng cú pháp **tên** (không để lẫn dấu ** ra ngoài chuỗi in đậm, không in đậm cả câu)
+- Không dùng heading #
 - Không bịa thêm thông tin ngoài dữ liệu đã cho`;
 }
 

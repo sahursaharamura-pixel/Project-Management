@@ -1926,11 +1926,16 @@ function toggleChatExpand(){
   $('chat-expand-btn').classList.toggle('active', chatExpanded);
 }
 
+function formatChatText(text){
+  // esc() trước để an toàn XSS, rồi mới đổi **chữ** thành in đậm
+  return esc(text).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+}
+
 function addMsg(text, role='bot'){
   const wrap = $('chat-messages');
   const div  = document.createElement('div');
   div.className = `chat-msg ${role}`;
-  div.innerHTML = `<div class="chat-msg-bubble">${esc(text)}</div>`;
+  div.innerHTML = `<div class="chat-msg-bubble">${formatChatText(text)}</div>`;
   wrap.appendChild(div);
   wrap.scrollTop = wrap.scrollHeight;
   return div;

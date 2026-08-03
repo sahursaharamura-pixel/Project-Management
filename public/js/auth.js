@@ -201,7 +201,9 @@ async function loadUsersAndAudit() {
   try {
     const [users, logs] = await Promise.all([apiAuth('/users'), apiAuth('/audit-log')]);
     renderUsers(users);
-    renderAuditLog(logs);
+    _auditLogs = logs;
+    _auditPage = 1;
+    renderAuditLog();
   } catch(e) {
     toast?.(e.message, true);
   }
@@ -231,10 +233,31 @@ const AUDIT_ACTION_LABEL = {
 };
 const AUDIT_ENTITY_LABEL = { project:'Dự án', item:'Hạng mục', tinh_hinh:'Tình hình triển khai', user:'Tài khoản' };
 
-function renderAuditLog(logs) {
+let _auditLogs = [];
+let _auditPage = 1;
+
+function changeAuditPageSize() {
+  _auditPage = 1;
+  renderAuditLog();
+}
+
+function auditGotoPage(page) {
+  _auditPage = page;
+  renderAuditLog();
+}
+
+function renderAuditLog() {
   const tbody = document.getElementById('audit-tbody');
   if (!tbody) return;
-  tbody.innerHTML = logs.map(l => `
+  const logs = _auditLogs;
+  const pageSize = parseInt(document.getElementById('audit-page-size')?.value || '10', 10);
+  const total = logs.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  if (_auditPage > totalPages) _auditPage = totalPages;
+  const start = (_auditPage - 1) * pageSize;
+  const pageLogs = logs.slice(start, start + pageSize);
+
+  tbody.innerHTML = pageLogs.map(l => `
     <tr>
       <td style="white-space:nowrap">${new Date(l.created_at).toLocaleString('vi-VN')}</td>
       <td>${escapeHtml(l.name)} <span style="color:#94a3b8">(${escapeHtml(l.username)})</span></td>
@@ -242,6 +265,17 @@ function renderAuditLog(logs) {
       <td>${AUDIT_ENTITY_LABEL[l.entity]||l.entity}</td>
       <td>${escapeHtml(l.entity_name)}${l.detail?' — '+escapeHtml(l.detail):''}</td>
     </tr>`).join('') || '<tr><td colspan="5" style="text-align:center;color:#94a3b8">Chưa có nhật ký</td></tr>';
+
+  const pgWrap = document.getElementById('audit-pagination');
+  if (!pgWrap) return;
+  if (totalPages <= 1) { pgWrap.innerHTML = `<span class="pg-info">${total} bản ghi</span>`; return; }
+  pgWrap.innerHTML = `
+    <button class="pg-btn" onclick="auditGotoPage(${_auditPage-1})" ${_auditPage<=1?'disabled':''}>‹ Trước</button>
+    ${Array.from({length:totalPages},(_,i)=>i+1).map(pg=>
+      `<button class="pg-btn${pg===_auditPage?' active':''}" onclick="auditGotoPage(${pg})">${pg}</button>`
+    ).join('')}
+    <button class="pg-btn" onclick="auditGotoPage(${_auditPage+1})" ${_auditPage>=totalPages?'disabled':''}>Sau ›</button>
+    <span class="pg-info">${total} bản ghi · trang ${_auditPage}/${totalPages}</span>`;
 }
 
 function openUserForm() {

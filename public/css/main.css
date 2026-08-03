@@ -407,7 +407,7 @@ body{padding-top:58px}
 .chat-msg{display:flex}
 .chat-msg.bot{justify-content:flex-start}
 .chat-msg.user{justify-content:flex-end}
-.chat-msg-bubble{max-width:88%;padding:10px 14px;border-radius:14px;font-size:13px;line-height:1.6;white-space:pre-wrap;word-break:break-word}
+.chat-msg-bubble{max-width:88%;padding:10px 14px;border-radius:14px;font-size:16px;line-height:1.6;white-space:pre-wrap;word-break:break-word}
 .chat-msg.bot  .chat-msg-bubble{background:#f1f5f9;color:#1e293b;border-radius:4px 14px 14px 14px}
 .chat-msg.user .chat-msg-bubble{background:#2563eb;color:#fff;border-radius:14px 4px 14px 14px}
 .chat-msg.thinking .chat-msg-bubble{color:#94a3b8;font-style:italic}

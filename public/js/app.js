@@ -1239,6 +1239,21 @@ function openExcelImport(){
   $('excel-import-wrap').style.display='block';
   $('excel-import-wrap').scrollIntoView({behavior:'smooth',block:'nearest'});
 }
+function downloadItemCsvTemplate(){
+  const header='Tên hạng mục,Gói thầu/Nhóm,Đơn vị thi công,Người phụ trách,Ngày bắt đầu,Ngày kết thúc,Ưu tiên,Ghi chú';
+  const rows=[
+    ['Khảo sát hiện trạng hạ tầng mạng','Gói 1 - Khảo sát','Công ty TNHH ABC','Nguyễn Văn A','05/08/2026','20/08/2026','Quan trọng','Bao gồm 3 chi nhánh'],
+    ['Lập hồ sơ thiết kế kỹ thuật','Gói 1 - Khảo sát','Công ty TNHH ABC','Trần Thị B','21/08/2026','15/09/2026','Bình thường',''],
+    ['Mua sắm thiết bị switch/router','Gói 2 - Thiết bị','Công ty CP XYZ','Lê Văn C','01/09/2026','30/09/2026','Khẩn cấp','Chờ duyệt giá'],
+  ];
+  const csv=[header,...rows.map(r=>r.join(','))].join('\r\n');
+  const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download='mau-nhap-hang-muc.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
 function closeExcelImport(){
   $('excel-import-wrap').style.display='none';
   $('excel-file').value='';

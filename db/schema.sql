@@ -70,9 +70,16 @@ CREATE TABLE IF NOT EXISTS users (
   chuc_danh             VARCHAR(150) NULL,
   phong_ban             VARCHAR(150) NULL,
   don_vi                VARCHAR(150) NULL,
+  email                 VARCHAR(150) NULL,
   created_at            DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY idx_users_ma_nhan_vien (ma_nhan_vien)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- projects.manager_user_id thêm sau vì FK cần bảng users đã tồn tại
+ALTER TABLE projects
+  ADD COLUMN manager_user_id INT NULL AFTER budget,
+  ADD CONSTRAINT fk_projects_manager
+    FOREIGN KEY (manager_user_id) REFERENCES users(id) ON DELETE SET NULL;
 
 CREATE TABLE IF NOT EXISTS audit_log (
   id            INT AUTO_INCREMENT PRIMARY KEY,

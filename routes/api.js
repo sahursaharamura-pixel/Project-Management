@@ -8,8 +8,10 @@ const statsService   = require('../services/stats.service');
 const archiveService = require('../services/archive.service');
 const adminService   = require('../services/admin.service');
 const khcnSxkdService = require('../services/khcnSxkd.service');
+const reminderService = require('../services/reminder.service');
 const { requireAuth, requireAdmin } = require('../middleware/auth');
 const ah = require('../middleware/asyncHandler');
+const config = require('../config');
 
 const id = req => parseInt(req.params.id);
 
@@ -125,6 +127,23 @@ module.exports = () => {
   router.put('/sxkd-data', requireAuth, ah(async (req, res) => {
     await khcnSxkdService.saveSxkd(req.body);
     res.json({ ok: true });
+  }));
+
+  /* ── NHẮC NHỞ QUA MAIL ──
+     2 cách kích hoạt:
+     - /admin/reminders/run-now : admin bấm tay trên web để test ngay.
+     - /internal/reminders/run  : không qua đăng nhập, dùng cho Windows Task
+       Scheduler gọi đúng lịch (xem huong-phat-trien/gui-mail-nhac-nho.md mục 5),
+       xác thực bằng khoá bí mật trong header thay vì session. */
+  router.post('/admin/reminders/run-now', requireAdmin, ah(async (req, res) => {
+    res.json({ ketQua: await reminderService.guiNhacNhoDinhKy() });
+  }));
+
+  router.post('/internal/reminders/run', ah(async (req, res) => {
+    if (req.headers['x-internal-key'] !== config.INTERNAL_REMINDER_KEY) {
+      return res.status(401).json({ error: 'Không có quyền' });
+    }
+    res.json({ ketQua: await reminderService.guiNhacNhoDinhKy() });
   }));
 
   return router;

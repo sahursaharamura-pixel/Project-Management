@@ -10,15 +10,18 @@ const { badRequest, notFound } = require('../utils/AppError');
 
 const SO_TINH_HINH_GAN_DAY = 20;
 
-/* Chuẩn hóa dữ liệu form dự án về đúng kiểu trước khi xuống DB. */
-function chuanHoaDuAn(f) {
+/* Chuẩn hóa dữ liệu form dự án về đúng kiểu trước khi xuống DB.
+   `managerUserId` là giá trị mặc định cho manager_user_id nếu form không
+   truyền field này (vd. lúc tạo mới: mặc định là người đang tạo). */
+function chuanHoaDuAn(f, managerUserId) {
   return {
-    name:       f.name,
-    code:       f.code || '',
-    note:       f.note || '',
-    start_date: f.start_date || null,
-    end_date:   f.end_date   || null,
-    budget:     parseFloat(f.budget) || 0,
+    name:            f.name,
+    code:            f.code || '',
+    note:            f.note || '',
+    start_date:      f.start_date || null,
+    end_date:        f.end_date   || null,
+    budget:          parseFloat(f.budget) || 0,
+    manager_user_id: f.manager_user_id !== undefined ? (f.manager_user_id || null) : managerUserId,
   };
 }
 
@@ -44,7 +47,8 @@ async function danhSach() {
 async function tao(nguoiDung, f) {
   if (!f.name) throw badRequest('Tên dự án không được trống');
 
-  const id = await projectRepo.insert(chuanHoaDuAn(f));
+  /* Người phụ trách mặc định là người tạo dự án, trừ khi form chỉ định người khác. */
+  const id = await projectRepo.insert(chuanHoaDuAn(f, nguoiDung.id));
   await audit.ghiNhatKy({
     user: nguoiDung, action: 'create', entity: 'project',
     entity_id: id, entity_name: f.name,
@@ -55,7 +59,9 @@ async function tao(nguoiDung, f) {
 async function capNhat(nguoiDung, id, f) {
   if (!f.name) throw badRequest('Tên dự án không được trống');
 
-  await projectRepo.update(id, chuanHoaDuAn(f));
+  /* Form sửa không gửi manager_user_id -> giữ nguyên người phụ trách cũ. */
+  const hienTai = await projectRepo.findById(id);
+  await projectRepo.update(id, chuanHoaDuAn(f, hienTai?.manager_user_id ?? null));
   await audit.ghiNhatKy({
     user: nguoiDung, action: 'update', entity: 'project',
     entity_id: id, entity_name: f.name,

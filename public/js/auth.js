@@ -216,6 +216,7 @@ function renderUsers(users) {
     <tr>
       <td>${escapeHtml(u.username)}</td>
       <td>${escapeHtml(u.name)}</td>
+      <td>${u.email ? escapeHtml(u.email) : '<span style="color:#94a3b8">—</span>'}</td>
       <td>${u.role==='admin'?'⭐ Quản trị viên':'Người dùng'}</td>
       <td>${u.disabled?'<span style="color:#dc2626">Đã khóa</span>':'<span style="color:#059669">Hoạt động</span>'}</td>
       <td>${new Date(u.created_at).toLocaleDateString('vi-VN')}</td>
@@ -224,14 +225,15 @@ function renderUsers(users) {
         <button class="btn-outline btn-sm" onclick="toggleUserDisabled(${u.id},${!u.disabled})">${u.disabled?'🔓 Mở khóa':'🔒 Khóa'}</button>
         <button class="btn-outline btn-sm" onclick="deleteUser(${u.id},'${escapeHtml(u.name)}')" style="color:#dc2626">🗑</button>
       </td>
-    </tr>`).join('') || '<tr><td colspan="6" style="text-align:center;color:#94a3b8">Chưa có tài khoản</td></tr>';
+    </tr>`).join('') || '<tr><td colspan="7" style="text-align:center;color:#94a3b8">Chưa có tài khoản</td></tr>';
 }
 
 const AUDIT_ACTION_LABEL = {
   create:'➕ Tạo mới', update:'✏️ Cập nhật', delete:'🗑 Xóa',
   archive:'📦 Lưu trữ', unarchive:'♻️ Khôi phục', login:'🔐 Đăng nhập', logout:'🚪 Đăng xuất',
+  reminder_sent:'📧 Gửi nhắc nhở',
 };
-const AUDIT_ENTITY_LABEL = { project:'Dự án', item:'Hạng mục', tinh_hinh:'Tình hình triển khai', user:'Tài khoản' };
+const AUDIT_ENTITY_LABEL = { project:'Dự án', item:'Hạng mục', tinh_hinh:'Tình hình triển khai', user:'Tài khoản', reminder:'Nhắc nhở qua mail' };
 
 let _auditLogs = [];
 let _auditPage = 1;
@@ -378,6 +380,7 @@ function renderProfile(p) {
     ['Tên đăng nhập',  val(p.username)],
     ['Chức vụ',        val(p.chuc_danh)],
     ['Phòng ban',      val(p.phong_ban)],
+    ['Email',          val(p.email)],
     //['Đơn vị',         val(p.don_vi)],
     ['Quyền hạn',      ROLE_LABEL[p.role] || escapeHtml(p.role)],
   ];

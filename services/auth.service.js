@@ -99,6 +99,7 @@ async function layHoSo(nguoiDung) {
     phong_ban:   user.phong_ban   || null,
     don_vi:      user.don_vi      || null,
     ma_nhan_vien: user.ma_nhan_vien || null,
+    email:       user.email       || null,
     auth_source: user.auth_source || 'local',
   };
 }

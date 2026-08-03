@@ -4,6 +4,7 @@ const path    = require('path');
 const { initDB } = require('./db/init');
 const { createSessionStore } = require('./db/sessionStore');
 const { AppError } = require('./utils/AppError');
+const { batDauLich } = require('./jobs/reminderJob');
 const config  = require('./config');
 
 const app  = express();
@@ -64,6 +65,10 @@ initDB()
       console.log(`\n✅ Đang chạy: http://localhost:${PORT}`);
       console.log(`   Truy cập nội bộ: http://<IP_MÁY_CHỦ>:${PORT}\n`);
     });
+    /* Nếu chuyển sang dùng Windows Task Scheduler gọi /api/internal/reminders/run
+       (xem huong-phat-trien/gui-mail-nhac-nho.md mục 5), XOÁ dòng dưới để
+       tránh gửi trùng 2 lần (1 lần từ cron trong tiến trình, 1 lần từ Task Scheduler). */
+    batDauLich();
   })
   .catch(e => {
     console.error('❌ Không thể khởi tạo cơ sở dữ liệu MySQL:', e.message);

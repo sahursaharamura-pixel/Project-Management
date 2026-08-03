@@ -34,6 +34,7 @@ async function taoHoacDongBo(evnUser) {
   const maNhanVien = evnUser.maNhanVien || null;
   const chucDanh   = evnUser.chucDanh || null;
   const phongBan   = evnUser.phongBan?.ten || null;
+  const email      = evnUser.email || null;
   /* "Đơn vị": API EVN có thể trả ở nhiều dạng tuỳ cấu hình -> thử vài khoá
      phổ biến, không có thì để null (tài khoản nội bộ cũng null). */
   const donVi      = evnUser.donVi?.ten || evnUser.tenDonVi || evnUser.donVi || null;
@@ -46,11 +47,11 @@ async function taoHoacDongBo(evnUser) {
   if (!user) {
     const id = await userRepo.insertEvn({
       username, name, role: VAI_TRO_MAC_DINH,
-      ma_nhan_vien: maNhanVien, chuc_danh: chucDanh, phong_ban: phongBan, don_vi: donVi,
+      ma_nhan_vien: maNhanVien, chuc_danh: chucDanh, phong_ban: phongBan, don_vi: donVi, email,
     });
     user = await userRepo.findById(id);
   } else {
-    await userRepo.syncEvnInfo(user.id, { username, name, chuc_danh: chucDanh, phong_ban: phongBan, don_vi: donVi });
+    await userRepo.syncEvnInfo(user.id, { username, name, chuc_danh: chucDanh, phong_ban: phongBan, don_vi: donVi, email });
     user.username = username; user.name = name;
   }
 

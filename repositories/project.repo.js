@@ -16,18 +16,18 @@ async function exists(id) {
   return rows.length > 0;
 }
 
-async function insert({ name, code, note, start_date, end_date, budget }) {
+async function insert({ name, code, note, start_date, end_date, budget, manager_user_id }) {
   const r = await query(
-    'INSERT INTO projects (name, code, note, start_date, end_date, budget) VALUES (?,?,?,?,?,?)',
-    [name, code, note, start_date, end_date, budget]
+    'INSERT INTO projects (name, code, note, start_date, end_date, budget, manager_user_id) VALUES (?,?,?,?,?,?,?)',
+    [name, code, note, start_date, end_date, budget, manager_user_id]
   );
   return r.insertId;
 }
 
-function update(id, { name, code, note, start_date, end_date, budget }) {
+function update(id, { name, code, note, start_date, end_date, budget, manager_user_id }) {
   return query(
-    'UPDATE projects SET name=?, code=?, note=?, start_date=?, end_date=?, budget=? WHERE id=?',
-    [name, code, note, start_date, end_date, budget, id]
+    'UPDATE projects SET name=?, code=?, note=?, start_date=?, end_date=?, budget=?, manager_user_id=? WHERE id=?',
+    [name, code, note, start_date, end_date, budget, manager_user_id, id]
   );
 }
 

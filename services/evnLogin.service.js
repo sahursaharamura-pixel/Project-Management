@@ -1,8 +1,10 @@
 /* Xử lý phần đăng nhập bằng tài khoản SmartEVN cho tầng auth.service.
    Bản này bám kiến trúc GĐ2: thao tác DB qua user.repo, không viết SQL trực tiếp.
 
-   Quy ước (mô hình 2 quyền hiện tại):
-   - User EVN mới     -> role = 'user' (admin nâng quyền sau).
+   Quy ước:
+   - User EVN mới     -> role = 'user' (admin nâng quyền admin sau nếu cần).
+     Cấp bậc lãnh đạo/chuyên viên KHÔNG set ở đây — được suy ra tự động từ
+     chuc_danh mỗi lần dùng (xem services/permission.service.js).
    - Định danh ổn định -> ma_nhan_vien (KHÔNG dùng username làm khóa).
    - Không mật khẩu local -> auth_source = 'evn', password_hash = NULL. */
 const userRepo = require('../repositories/user.repo');

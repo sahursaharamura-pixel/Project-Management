@@ -10,6 +10,7 @@ const audit    = require('./audit.service');
 const config   = require('../config');
 const smartevn = require('./smartevn.service');
 const evnLogin = require('./evnLogin.service');
+const permission = require('./permission.service');
 const { AppError, badRequest, unauthorized, notFound } = require('../utils/AppError');
 
 const MAT_KHAU_TOI_THIEU = 6;
@@ -26,6 +27,7 @@ const thongTinPhien = (user) => ({
   username:    user.username,
   name:        user.name,
   role:        user.role,
+  cap_bac:     permission.xacDinhCapBac(user),
   auth_source: user.auth_source || 'local',
 });
 
@@ -95,6 +97,7 @@ async function layHoSo(nguoiDung) {
     name:        user.name,
     username:    user.username,
     role:        user.role,
+    cap_bac:     permission.xacDinhCapBac(user),
     chuc_danh:   user.chuc_danh   || null,
     phong_ban:   user.phong_ban   || null,
     don_vi:      user.don_vi      || null,
@@ -130,7 +133,7 @@ async function doiMatKhau(nguoiDung, { old_password, new_password }) {
 /* ── QUẢN LÝ NGƯỜI DÙNG (admin) ───────────────────────────── */
 async function danhSachNguoiDung() {
   const rows = await userRepo.findAllSafe();
-  return rows.map(u => ({ ...u, disabled: !!u.disabled }));
+  return rows.map(u => ({ ...u, disabled: !!u.disabled, cap_bac: permission.xacDinhCapBac(u) }));
 }
 
 async function taoNguoiDung(nguoiThucHien, { username, password, name, role }) {

@@ -39,6 +39,12 @@ async function initAuth() {
   updateAuthUI();
 }
 
+/* Cấp bậc nào được nhập liệu (thêm/sửa/xóa dữ liệu nghiệp vụ): admin + chuyên viên.
+   Lãnh đạo chỉ được xem dashboard/báo cáo -> ẩn hết nút .js-nhap-lieu qua class trên <body>. */
+function canNhapLieu() {
+  return !!currentUser && currentUser.cap_bac !== 'lanh_dao';
+}
+
 function updateAuthUI() {
   const el = document.getElementById('auth-widget');
   const adminLink = document.getElementById('sidebar-group-admin');
@@ -64,7 +70,8 @@ function updateAuthUI() {
         </div>
       </div>`;
     if (adminLink) adminLink.style.display = currentUser.role==='admin' ? '' : 'none';
-    if (dangerZone) dangerZone.style.display = currentUser.role==='admin' ? '' : 'none';
+    if (dangerZone) dangerZone.style.display = 'none';
+    document.body.classList.toggle('no-nhap-lieu', !canNhapLieu());
     /* Tài khoản EVN không có mật khẩu local -> không tự bật form đổi
        mật khẩu nội bộ (kể cả khi cờ must_change_password bật nhầm). */
     if (currentUser.must_change_password && !laTaiKhoanEVN) {
@@ -75,6 +82,7 @@ function updateAuthUI() {
     el.innerHTML = `<button onclick="openLoginModal()" style="background:rgba(255,255,255,.2);color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:13px;font-weight:700;cursor:pointer">🔐 Đăng nhập</button>`;
     if (adminLink) adminLink.style.display = 'none';
     if (dangerZone) dangerZone.style.display = 'none';
+    document.body.classList.add('no-nhap-lieu');
   }
 }
 
@@ -217,7 +225,7 @@ function renderUsers(users) {
       <td>${escapeHtml(u.username)}</td>
       <td>${escapeHtml(u.name)}</td>
       <td>${u.email ? escapeHtml(u.email) : '<span style="color:#94a3b8">—</span>'}</td>
-      <td>${u.role==='admin'?'⭐ Quản trị viên':'Người dùng'}</td>
+      <td>${CAP_BAC_LABEL[u.cap_bac] || (u.role==='admin'?'⭐ Quản trị viên':'Người dùng')}</td>
       <td>${u.disabled?'<span style="color:#dc2626">Đã khóa</span>':'<span style="color:#059669">Hoạt động</span>'}</td>
       <td>${new Date(u.created_at).toLocaleDateString('vi-VN')}</td>
       <td style="text-align:center;white-space:nowrap">
@@ -350,6 +358,11 @@ async function deleteUser(id, name) {
 
 /* ═══ HỒ SƠ NGƯỜI DÙNG ═══ */
 const ROLE_LABEL = { admin: '⭐ Quản trị viên', user: 'Người dùng' };
+const CAP_BAC_LABEL = {
+  admin:       '⭐ Quản trị viên (toàn quyền)',
+  lanh_dao:    '📊 Lãnh đạo (xem dashboard, báo cáo)',
+  chuyen_vien: '📝 Chuyên viên (nhập liệu, xem dashboard, báo cáo)',
+};
 const AUTH_SOURCE_LABEL = { evn: 'Tài khoản SmartEVN', local: 'Tài khoản nội bộ' };
 
 /* Chuyển sang trang hồ sơ (định tuyến qua showPage trong app.js). */
@@ -382,7 +395,7 @@ function renderProfile(p) {
     ['Phòng ban',      val(p.phong_ban)],
     ['Email',          val(p.email)],
     //['Đơn vị',         val(p.don_vi)],
-    ['Quyền hạn',      ROLE_LABEL[p.role] || escapeHtml(p.role)],
+    ['Quyền hạn',      CAP_BAC_LABEL[p.cap_bac] || ROLE_LABEL[p.role] || escapeHtml(p.role)],
   ];
 
   const initial = escapeHtml((p.name || '?').trim().charAt(0).toUpperCase());

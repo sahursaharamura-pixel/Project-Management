@@ -31,6 +31,14 @@ app.use(session({
   },
 }));
 
+/* report.html là trang tĩnh mở tab riêng (target="_blank"), không đi qua app SPA
+   nên không có cơ chế 401 -> mở modal đăng nhập. Chặn thẳng ở đây trước khi
+   static middleware phục vụ file, để khách chưa đăng nhập không xem được báo cáo. */
+app.get('/report.html', (req, res, next) => {
+  if (!req.session || !req.session.user) return res.redirect('/');
+  next();
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/api', require('./routes/auth')());

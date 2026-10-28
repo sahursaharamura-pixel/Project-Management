@@ -3,7 +3,7 @@ const { query } = require('../db/mysql');
 
 /* Danh sách hiển thị cho admin: KHÔNG lấy password_hash ra ngoài. */
 const findAllSafe = () =>
-  query('SELECT id, username, name, role, disabled, created_at, email, don_vi FROM users ORDER BY id');
+  query('SELECT id, username, name, role, chuc_danh, disabled, created_at, email, don_vi FROM users ORDER BY id');
 
 async function findByUsername(username) {
   const rows = await query('SELECT * FROM users WHERE username = ?', [username]);

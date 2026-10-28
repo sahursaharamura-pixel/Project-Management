@@ -1,7 +1,8 @@
 /* TẦNG SERVICE — trợ lý AI phân tích dự án.
    Gồm 2 phần tách bạch:
      1. gomNguCanh()  — lấy & tóm tắt dữ liệu dự án (gọn để tiết kiệm token)
-     2. hoiClaude()   — gọi Anthropic API
+     2. hoiClaude()   — gọi Anthropic API; Claude có công cụ doc_van_ban để tự
+                        mở văn bản PDF/Word đính kèm tình hình triển khai khi cần
 
    THAY ĐỔI KỸ THUẬT so với bản cũ: dùng fetch (có sẵn từ Node 18) thay cho
    https.request dạng callback. Lý do: callback nằm trong async handler nên lỗi
@@ -12,6 +13,8 @@ const projectRepo  = require('../repositories/project.repo');
 const itemRepo     = require('../repositories/item.repo');
 const tinhHinhRepo = require('../repositories/tinhHinh.repo');
 const archiveRepo  = require('../repositories/archive.repo');
+const fileRepo     = require('../repositories/tinhHinhFile.repo');
+const fileService  = require('./tinhHinhFile.service');
 const rules        = require('./status.rules');
 const { badRequest, AppError } = require('../utils/AppError');
 
@@ -20,6 +23,20 @@ const API_VERSION  = '2023-06-01';
 const MODEL        = 'claude-haiku-4-5-20251001';
 const MAX_TOKENS   = 1024;
 const SO_TIN_TINH_HINH = 3;   // mỗi dự án gửi kèm 3 bản tin tình hình mới nhất
+const SO_VONG_TOI_DA   = 5;   // số lượt tối đa Claude được gọi công cụ đọc văn bản / 1 câu hỏi
+
+/* Công cụ cho Claude tự mở văn bản đính kèm (PDF, Word) của tình hình triển khai
+   khi câu hỏi cần tới nội dung file — không gửi sẵn mọi file để tiết kiệm token. */
+const CONG_CU = [{
+  name: 'doc_van_ban',
+  description: 'Đọc toàn bộ nội dung một văn bản (PDF/Word) đính kèm trong tình hình triển khai. '
+             + 'Dùng khi câu hỏi liên quan tới nội dung văn bản; file_id lấy từ mục van_ban_dinh_kem trong DỮ LIỆU.',
+  input_schema: {
+    type: 'object',
+    properties: { file_id: { type: 'integer', description: 'file_id của văn bản cần đọc' } },
+    required: ['file_id'],
+  },
+}];
 
 const loi = (msg) => new AppError(500, msg);
 
@@ -33,11 +50,12 @@ function kiemTraApiKey(apiKey) {
 
 /* ── GOM & TÓM TẮT DỮ LIỆU ────────────────────────────────── */
 async function gomNguCanh() {
-  const [projects, items, tinhHinh, archives] = await Promise.all([
+  const [projects, items, tinhHinh, archives, vanBan] = await Promise.all([
     projectRepo.findAllActive(),
     itemRepo.findAll(),
     tinhHinhRepo.findAll(),
     archiveRepo.findIds(),
+    fileRepo.findAllKemHangMuc(),
   ]);
 
   const tomTat = projects.map(p => {
@@ -71,10 +89,19 @@ async function gomNguCanh() {
         created_at: t.created_at,
         item_name: hangMuc.find(i => i.id === t.item_id)?.name || '',
       })),
+      van_ban_dinh_kem: vanBan
+        .filter(f => f.project_id === p.id)
+        .map(f => ({
+          file_id: f.id, ten: f.ten_goc, created_at: f.created_at,
+          item_name: hangMuc.find(i => i.id === f.item_id)?.name || '',
+        })),
     };
   });
 
-  return { tomTat, soDuAnLuuTru: archives.length };
+  /* Chỉ cho phép đọc văn bản thuộc các dự án đang hoạt động đã liệt kê ở trên. */
+  const fileIdHopLe = new Set(tomTat.flatMap(p => p.van_ban_dinh_kem.map(f => f.file_id)));
+
+  return { tomTat, soDuAnLuuTru: archives.length, fileIdHopLe };
 }
 
 function taoSystemPrompt({ tomTat, soDuAnLuuTru }) {
@@ -94,7 +121,8 @@ QUY TẮC TRẢ LỜI (bắt buộc tuân thủ):
 - Nếu liệt kê nhiều hơn 2 mục thì dùng gạch đầu dòng (-), mỗi mục 1 dòng ngắn
 - Khi cần nhấn mạnh tên công việc/hạng mục ở đầu dòng, in đậm ĐÚNG phần tên đó bằng cú pháp **tên** (không để lẫn dấu ** ra ngoài chuỗi in đậm, không in đậm cả câu)
 - Không dùng heading #
-- Không bịa thêm thông tin ngoài dữ liệu đã cho`;
+- Không bịa thêm thông tin ngoài dữ liệu đã cho
+- Mục van_ban_dinh_kem chỉ có TÊN văn bản. Khi câu hỏi cần nội dung văn bản (nội dung, số liệu, kết luận, tóm tắt...), PHẢI gọi công cụ doc_van_ban với file_id tương ứng để đọc trước khi trả lời; khi trả lời dựa vào văn bản thì nêu tên văn bản làm nguồn`;
 }
 
 /* Dịch mã lỗi của Anthropic sang thông báo tiếng Việt dễ hiểu. */
@@ -114,7 +142,51 @@ async function hoiClaude(apiKey, cauHoi) {
   kiemTraApiKey(apiKey);
 
   const nguCanh = await gomNguCanh();
+  const system  = taoSystemPrompt(nguCanh);
+  const messages = [{ role: 'user', content: cauHoi }];
 
+  for (let vong = 0; ; vong++) {
+    const parsed = await goiAPI(apiKey, {
+      model:      MODEL,
+      max_tokens: MAX_TOKENS,
+      system,
+      messages,
+      /* Hết lượt đọc văn bản -> không đưa công cụ nữa, buộc Claude trả lời luôn. */
+      ...(vong < SO_VONG_TOI_DA ? { tools: CONG_CU } : {}),
+    });
+
+    if (parsed.stop_reason !== 'tool_use') {
+      const text = (parsed.content || [])
+        .filter(b => b.type === 'text').map(b => b.text).join('\n').trim();
+      return text || 'Không có phản hồi';
+    }
+
+    messages.push({ role: 'assistant', content: parsed.content });
+    const ketQua = await Promise.all(parsed.content
+      .filter(b => b.type === 'tool_use')
+      .map(b => chayCongCu(b, nguCanh.fileIdHopLe)));
+    messages.push({ role: 'user', content: ketQua });
+  }
+}
+
+/* Thực thi 1 lời gọi công cụ doc_van_ban -> tool_result. Lỗi đọc file trả lại
+   cho Claude (is_error) để nó báo cho người dùng, không làm hỏng cả câu hỏi. */
+async function chayCongCu(block, fileIdHopLe) {
+  const ketQua = (content, isError) => ({
+    type: 'tool_result', tool_use_id: block.id, content, ...(isError ? { is_error: true } : {}),
+  });
+  const fileId = Number(block.input?.file_id);
+  if (block.name !== 'doc_van_ban' || !fileIdHopLe.has(fileId)) {
+    return ketQua('Không tìm thấy văn bản với file_id này', true);
+  }
+  try {
+    return ketQua(await fileService.docChoAI(fileId));
+  } catch (e) {
+    return ketQua(`Không đọc được văn bản: ${e.message}`, true);
+  }
+}
+
+async function goiAPI(apiKey, body) {
   let res;
   try {
     res = await fetch(API_URL, {
@@ -124,12 +196,7 @@ async function hoiClaude(apiKey, cauHoi) {
         'x-api-key':         apiKey,
         'anthropic-version': API_VERSION,
       },
-      body: JSON.stringify({
-        model:      MODEL,
-        max_tokens: MAX_TOKENS,
-        system:     taoSystemPrompt(nguCanh),
-        messages:   [{ role: 'user', content: cauHoi }],
-      }),
+      body: JSON.stringify(body),
     });
   } catch (e) {
     /* Không nối được tới api.anthropic.com (mất mạng, firewall chặn...) */
@@ -144,8 +211,7 @@ async function hoiClaude(apiKey, cauHoi) {
   }
 
   if (parsed.error) throw loi(dichLoiAPI(parsed.error));
-
-  return parsed.content?.[0]?.text || 'Không có phản hồi';
+  return parsed;
 }
 
 module.exports = { hoiClaude, gomNguCanh };

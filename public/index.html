@@ -4,7 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Theo dõi Tiến độ Dự án</title>
-<link rel="stylesheet" href="/css/main.css?v=20260723">
+<link rel="stylesheet" href="/fonts/be-vietnam-pro.css">
+<link rel="stylesheet" href="/css/main.css?v=20261028">
 </head>
 <body>
 
@@ -35,7 +36,7 @@
       <a class="sidebar-link active" data-page="dashboard" href="/" onclick="handleNavDashboard(event)">
         <span class="sidebar-icon">📊</span><span>Tổng quan</span>
       </a>
-      <a class="sidebar-link" data-page="nhap-lieu" href="#">
+      <a class="sidebar-link js-nhap-lieu" data-page="nhap-lieu" href="#">
         <span class="sidebar-icon">✏️</span><span>Nhập liệu</span>
       </a>
       <a class="sidebar-link" data-page="lich-su" href="#">
@@ -73,14 +74,12 @@
         <div class="db-title">Tổng quan tiến độ dự án</div>
         <div class="db-subtitle" id="db-subtitle">Đang tải...</div>
       </div>
-      <div class="db-header-right">
-        <button class="btn-refresh" id="btn-refresh-main" onclick="manualRefresh()" style="background:rgba(255,255,255,.15);min-width:130px">⟳ Làm mới (60s)</button>
-        <button class="btn-refresh" id="btn-scroll-toggle" onclick="toggleScroll()" style="background:rgba(255,255,255,.15)">⏸ Dừng cuộn</button>
-      </div>
+      <div class="pdh-kpis" id="db-kpis"></div>
     </div>
   </div>
   <div class="db-body">
-    <div class="kpi-row" id="db-kpis"></div>
+    <div class="section-title">Tiến độ từng dự án <span class="refresh-info" id="db-refresh-info2"></span></div>
+    <div id="proj-cards" class="proj-cards"></div>
     <div class="row-2col">
       <div class="card">
         <div class="card-head">Phân bố trạng thái hạng mục</div>
@@ -94,8 +93,6 @@
         <div id="alert-list" class="alert-list"></div>
       </div>
     </div>
-    <div class="section-title">Tiến độ từng dự án <span class="refresh-info" id="db-refresh-info2"></span></div>
-    <div id="proj-cards" class="proj-cards"></div>
     <div class="section-title" style="margin-top:8px">
       Chi tiết hạng mục theo dự án
     </div>
@@ -285,7 +282,7 @@
     </div>
 
       <!-- VÙNG NGUY HIỂM -->
-      <div id="danger-zone-reset" style="margin-top:32px;padding:18px 20px;background:#fff5f5;border:1.5px dashed #fca5a5;border-radius:12px;display:flex;align-items:center;justify-content:space-between;gap:16px">
+      <div id="danger-zone-reset" style="margin-top:32px;padding:18px 20px;background:#fff5f5;border:1.5px dashed #fca5a5;border-radius:12px;display:none;align-items:center;justify-content:space-between;gap:16px">
         <div>
           <div style="font-size:14px;font-weight:700;color:#991b1b">⚠ Xóa toàn bộ dữ liệu</div>
           <div style="font-size:12px;color:#64748b;margin-top:3px">Xóa tất cả dự án, hạng mục, lịch sử. Không thể hoàn tác.</div>
@@ -363,10 +360,6 @@
       </div>
       <div style="display:flex;align-items:center;gap:10px">
         <div class="pdh-kpis" id="pdh-kpis"></div>
-        <button id="btn-tour-resume" onclick="resumeTour()"
-          style="display:none;background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">
-          ▶ Tiếp tục tour
-        </button>
       </div>
     </div>
   </div>

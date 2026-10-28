@@ -46,6 +46,19 @@ CREATE TABLE IF NOT EXISTS tinh_hinh (
   INDEX idx_tinhhinh_item (item_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Văn bản (PDF, Word) đính kèm theo từng cập nhật tình hình; file thật nằm ở uploads/tinh-hinh/
+CREATE TABLE IF NOT EXISTS tinh_hinh_files (
+  id            INT AUTO_INCREMENT PRIMARY KEY,
+  tinh_hinh_id  INT NOT NULL,
+  ten_goc       VARCHAR(255) NOT NULL,
+  ten_luu       VARCHAR(100) NOT NULL,
+  mime          VARCHAR(100) NOT NULL,
+  kich_thuoc    INT NOT NULL DEFAULT 0,
+  created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (tinh_hinh_id) REFERENCES tinh_hinh(id) ON DELETE CASCADE,
+  INDEX idx_thfile_tinhhinh (tinh_hinh_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Bản ghi lưu trữ dự án hoàn thành: giữ nguyên snapshot dạng JSON (không cần chuẩn hoá vì chỉ đọc)
 CREATE TABLE IF NOT EXISTS archives (
   id              INT AUTO_INCREMENT PRIMARY KEY,

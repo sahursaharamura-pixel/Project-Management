@@ -2,7 +2,9 @@
 const itemRepo     = require('../repositories/item.repo');
 const projectRepo  = require('../repositories/project.repo');
 const tinhHinhRepo = require('../repositories/tinhHinh.repo');
-const audit        = require('./audit.service');
+const fileRepo     = require('../repositories/tinhHinhFile.repo');
+const fileService  = require('./tinhHinhFile.service');
+const audit       = require('./audit.service');
 const rules        = require('./status.rules');
 const { badRequest, notFound } = require('../utils/AppError');
 
@@ -112,7 +114,9 @@ async function capNhat(nguoiDung, id, f) {
 
 async function xoa(nguoiDung, id) {
   const item = await itemRepo.findById(id);
+  const files = await fileRepo.findTenLuuByItem(id);
   await itemRepo.remove(id);
+  await fileService.xoaTrenDia(files);
   await audit.ghiNhatKy({
     user: nguoiDung, action: 'delete', entity: 'item',
     entity_id: id, entity_name: item?.name || '',
@@ -120,7 +124,8 @@ async function xoa(nguoiDung, id) {
 }
 
 /* ── TÌNH HÌNH TRIỂN KHAI ─────────────────────────────────── */
-const danhSachTinhHinh = (itemId) => tinhHinhRepo.findByItem(itemId);
+const danhSachTinhHinh = async (itemId) =>
+  fileService.ganFile(await tinhHinhRepo.findByItem(itemId));
 
 async function themTinhHinh(nguoiDung, itemId, noiDung) {
   const item = await itemRepo.findById(itemId);
@@ -139,7 +144,9 @@ async function themTinhHinh(nguoiDung, itemId, noiDung) {
 
 async function xoaTinhHinh(nguoiDung, id) {
   const log = await tinhHinhRepo.findById(id);
+  const files = await fileRepo.findTenLuuByTinhHinh(id);
   await tinhHinhRepo.remove(id);
+  await fileService.xoaTrenDia(files);
   await audit.ghiNhatKy({
     user: nguoiDung, action: 'delete', entity: 'tinh_hinh',
     entity_id: id, entity_name: log?.noi_dung?.slice(0, 50) || '',

@@ -55,6 +55,7 @@ async function seedAdminIfEmpty() {
 }
 
 async function initDB() {
+  await require('../repositories/tinhHinhFile.repo').ensureTable();
   await seedIfEmpty();
   await seedAdminIfEmpty();
 }

@@ -61,284 +61,6 @@ function startClock() {
   tick(); setInterval(tick,1000);
 }
 
-/* ═══ AUTO SCROLL ═══
-   Dùng MỘT trạng thái duy nhất thay vì nhiều cờ rời rạc, để tránh
-   2 cơ chế (nút bấm tay & tự-tạm-dừng khi tương tác) đá nhau:
-
-   RUNNING     : đang tự cuộn bình thường
-   AUTO_PAUSED : tạm dừng vì có tương tác (click/lăn chuột/gõ phím),
-                 sẽ tự quay lại RUNNING sau PAUSE_ON_INTERACT_MS
-   STOPPED     : người dùng bấm nút "Dừng cuộn" — dừng vô thời hạn,
-                 KHÔNG có tương tác nào được phép tự ý đổi trạng thái
-                 này, chỉ có bấm nút "Tiếp tục cuộn" mới thoát ra được
-*/
-const SCROLL_STATE = { RUNNING:'running', AUTO_PAUSED:'auto-paused', STOPPED:'stopped' };
-let scrollMode = SCROLL_STATE.RUNNING;
-let scrollRAF=null, scrollResumeTimer=null;
-const SCROLL_MS=30000;
-const PAUSE_ON_INTERACT_MS=30000; // thời gian tạm dừng khi có tương tác (30000 = 30s)
-
-let _scrollCycleCount = 0; // đếm số lần cuộn (1 lần = xuống + lên)
-let _projTourIndex    = 0; // index dự án đang xem trong tour
-let _inProjTour       = false; // đang ở chế độ tour dự án
-
-function startAutoScroll() {
-  cancelAnimationFrame(scrollRAF);
-  _scrollCycleCount = 0;
-  let start=null, dir='down', fromPos=0, toPos=0;
-
-  function initPhase() {
-    const el=document.documentElement;
-    fromPos=el.scrollTop;
-    toPos=dir==='down'?(el.scrollHeight-el.clientHeight):0;
-    start=null;
-  }
-
-  function ease(t){ return t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2; }
-
-  function step(ts) {
-    if (scrollMode !== SCROLL_STATE.RUNNING){ scrollRAF=requestAnimationFrame(step); return; }
-    if (!start){ initPhase(); start=ts; }
-    const p=Math.min((ts-start)/SCROLL_MS,1);
-    window.scrollTo(0, fromPos+(toPos-fromPos)*ease(p));
-    if (p<1){
-      scrollRAF=requestAnimationFrame(step);
-    } else {
-      if (dir==='up') {
-        // Hoàn thành 1 chu kỳ xuống+lên
-        _scrollCycleCount++;
-        if (_scrollCycleCount >= 3) {
-          // Nhảy sang tour dự án
-          _scrollCycleCount = 0;
-          setTimeout(()=>startProjTour(), 800);
-          return;
-        }
-      }
-      dir=dir==='down'?'up':'down'; start=null;
-      setTimeout(()=>{ scrollRAF=requestAnimationFrame(step); },600);
-    }
-  }
-  scrollRAF=requestAnimationFrame(step);
-}
-
-/* ── Tour tự động các trang dự án ── */
-async function startProjTour() {
-  // Lấy danh sách dự án hiện tại (đã sort theo ID)
-  const projs = projects.slice().sort((a,b)=>a.id-b.id);
-  if(!projs.length){ restartDashboardScroll(); return; }
-
-  _inProjTour = true;
-  await showNextProjInTour(projs);
-}
-
-async function showNextProjInTour(projs) {
-  if(_projTourIndex >= projs.length){
-    // Hết dự án → quay về dashboard
-    _projTourIndex = 0;
-    _inProjTour    = false;
-    history.pushState({}, '', '/');
-    showPage('dashboard');
-    return;
-  }
-
-  const proj = projs[_projTourIndex];
-  _projTourIndex++;
-
-  // Mở trang dự án
-  await loadProjectDetail(proj.id);
-
-  // Cuộn trang dự án từ đầu đến cuối rồi nhảy sang cái tiếp theo
-  scrollProjPage(projs);
-}
-
-function scrollProjPage(projs) {
-  cancelAnimationFrame(scrollRAF);
-  if(scrollMode !== SCROLL_STATE.RUNNING){ scrollRAF=requestAnimationFrame(()=>scrollProjPage(projs)); return; }
-
-  window.scrollTo(0,0);
-  let start=null;
-
-  function ease(t){ return t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2; }
-
-  function step(ts){
-    if(scrollMode !== SCROLL_STATE.RUNNING){ scrollRAF=requestAnimationFrame(step); return; }
-    if(!start) start=ts;
-    const el=document.documentElement;
-    const maxScroll=el.scrollHeight-el.clientHeight;
-    const p=Math.min((ts-start)/SCROLL_MS,1);
-    window.scrollTo(0, maxScroll*ease(p));
-    if(p<1){
-      scrollRAF=requestAnimationFrame(step);
-    } else {
-      // Xong trang này, dừng 1.5s rồi nhảy trang kế
-      setTimeout(()=>{ if(scrollMode===SCROLL_STATE.RUNNING) showNextProjInTour(projs); }, 1500);
-    }
-  }
-  // Đợi trang render xong rồi mới cuộn
-  setTimeout(()=>{ scrollRAF=requestAnimationFrame(step); }, 600);
-}
-
-/* ── Cuộn đơn giản cho trang KHCN: chỉ lên–xuống, không tour ── */
-function startSimpleScroll(){
-  cancelAnimationFrame(scrollRAF);
-  let start=null, dir='down', fromPos=0, toPos=0;
-
-  function ease(t){ return t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2; }
-
-  function step(ts){
-    if(!$('page-khcn')?.classList.contains('active')){ cancelAnimationFrame(scrollRAF); return; }
-    if(scrollMode !== SCROLL_STATE.RUNNING){ scrollRAF=requestAnimationFrame(step); return; }
-    if(!start){
-      const el=document.documentElement;
-      fromPos=el.scrollTop;
-      toPos=dir==='down'?(el.scrollHeight-el.clientHeight):0;
-      start=ts;
-    }
-    const p=Math.min((ts-start)/SCROLL_MS,1);
-    window.scrollTo(0, fromPos+(toPos-fromPos)*ease(p));
-    if(p<1){
-      scrollRAF=requestAnimationFrame(step);
-    } else {
-      dir=dir==='down'?'up':'down'; start=null;
-      setTimeout(()=>{ scrollRAF=requestAnimationFrame(step); },600);
-    }
-  }
-  setTimeout(()=>{ scrollRAF=requestAnimationFrame(step); },600);
-}
-
-function restartDashboardScroll(){
-  _scrollCycleCount=0;
-  startAutoScroll();
-}
-
-function stopAutoScroll(){ cancelAnimationFrame(scrollRAF); scrollRAF=null; }
-
-/* ── Auto-scroll pause khi tương tác ──
-   - click / keydown / touchstart : reset ngay lập tức
-   - wheel : debounce 300ms (tránh reset liên tục khi cuộn)
-   - Mỗi lần reset → đếm ngược lại từ đầu theo PAUSE_ON_INTERACT_MS
-   - Nếu đang STOPPED (người dùng bấm Dừng hẳn) thì bỏ qua tất cả
-*/
-let _scrollCountdownTick = null;
-
-function _getActiveScrollBtn(){
-  const onDashboard=$('page-dashboard')?.classList.contains('active');
-  const onProjPage =$('page-du-an')?.classList.contains('active');
-  const onKhcn     =$('page-khcn')?.classList.contains('active');
-  if(onDashboard) return {btn:$('btn-scroll-toggle'), type:'dashboard'};
-  if(onProjPage)  return {btn:$('btn-tour-resume'),   type:'proj'};
-  if(onKhcn)      return {btn:null,                   type:'khcn'};
-  return {btn:null, type:''};
-}
-
-function _resetScrollTimer(){
-  // Đã dừng hẳn → không có tương tác nào được phép đánh thức lại,
-  // chỉ có bấm nút "Tiếp tục cuộn" (toggleScroll) mới thoát khỏi STOPPED.
-  if(scrollMode === SCROLL_STATE.STOPPED) return;
-
-  const onDashboard=$('page-dashboard')?.classList.contains('active');
-  const onProjPage =$('page-du-an')?.classList.contains('active');
-  const onKhcn     =$('page-khcn')?.classList.contains('active');
-  if(!onDashboard && !onProjPage && !onKhcn) return;
-
-  scrollMode = SCROLL_STATE.AUTO_PAUSED;
-  clearTimeout(scrollResumeTimer);
-  clearInterval(_scrollCountdownTick);
-
-  const {btn, type}=_getActiveScrollBtn();
-  let remaining=PAUSE_ON_INTERACT_MS/1000;
-  if(btn){ btn.style.display='block'; btn.textContent=`▶ Tiếp tục (${remaining}s)`; btn.style.background='rgba(255,255,255,.1)'; }
-
-  _scrollCountdownTick=setInterval(()=>{
-    remaining--;
-    if(btn) btn.textContent=`▶ Tiếp tục (${remaining}s)`;
-    if(remaining<=0) clearInterval(_scrollCountdownTick);
-  },1000);
-
-  scrollResumeTimer=setTimeout(()=>{
-    scrollResumeTimer=null;
-    clearInterval(_scrollCountdownTick);
-    // Trong lúc chờ, nếu người dùng đã bấm "Dừng cuộn" (STOPPED) thì
-    // bỏ qua, không được tự ý resume đè lên quyết định thủ công đó.
-    if(scrollMode === SCROLL_STATE.STOPPED) return;
-    scrollMode = SCROLL_STATE.RUNNING;
-    const {btn:b}=_getActiveScrollBtn();
-    if(type==='dashboard'){
-      if(b){ b.textContent='⏸ Dừng cuộn'; b.style.background='rgba(255,255,255,.25)'; }
-    } else if(type==='khcn'){
-      startSimpleScroll();
-    } else if(type==='proj'){
-      if(b) b.style.display='none';
-      _inProjTour=true;
-      const projs=projects.slice().sort((a,b2)=>a.id-b2.id);
-      scrollProjPage(projs);
-    }
-  }, PAUSE_ON_INTERACT_MS);
-}
-
-/* Bỏ qua mọi sự kiện phát sinh từ chính 2 nút điều khiển — click/chạm
-   vào đó là MỘT LỆNH tường minh (xử lý riêng trong toggleScroll/resumeTour),
-   không phải "tương tác thường với trang" nên không được đi qua
-   _resetScrollTimer nữa. Đây là chốt chặn ở TẤT CẢ các hàm nhận sự kiện,
-   không phụ thuộc vào việc bubbling có bị chặn hay không. */
-function _isControlWidget(e){
-  return !!(e && e.target && e.target.closest && e.target.closest('#btn-scroll-toggle, #btn-tour-resume'));
-}
-
-/* Debounce riêng cho wheel — chỉ trigger sau khi ngừng cuộn 300ms */
-let _wheelDebounce = null;
-function _isScrollPage(){
-  return !!($('page-dashboard')?.classList.contains('active')
-         || $('page-du-an')?.classList.contains('active')
-         || $('page-khcn')?.classList.contains('active'));
-}
-
-function _onWheel(e){
-  if(!_isScrollPage()) return;
-  if(_isControlWidget(e)) return;
-  clearTimeout(_wheelDebounce);
-  _wheelDebounce = setTimeout(_resetScrollTimer, 300);
-}
-
-/* Click / touch / key — trigger ngay */
-function _onInteract(e){
-  if(!_isScrollPage()) return;
-  if(_isControlWidget(e)) return;
-  if(scrollMode === SCROLL_STATE.STOPPED) return; // đã dừng hẳn, tương tác khác không có tác dụng
-  if(_inProjTour){
-    _inProjTour=false;
-    cancelAnimationFrame(scrollRAF);
-    const btnTour=$('btn-tour-resume');
-    if(btnTour) btnTour.style.display='block';
-  }
-  _resetScrollTimer();
-}
-
-/* Nút "⏸ Dừng cuộn" / "▶ Tiếp tục cuộn" — nguồn sự thật DUY NHẤT
-   cho việc vào/thoát trạng thái STOPPED. */
-function toggleScroll(){
-  clearTimeout(scrollResumeTimer);
-  clearInterval(_scrollCountdownTick);
-  scrollResumeTimer = null;
-
-  scrollMode = (scrollMode === SCROLL_STATE.STOPPED)
-    ? SCROLL_STATE.RUNNING   // đang dừng hẳn → bấm để chạy tiếp
-    : SCROLL_STATE.STOPPED;  // đang chạy hoặc đang auto-pause → dừng hẳn
-
-  const stopped = scrollMode === SCROLL_STATE.STOPPED;
-  const btn = $('btn-scroll-toggle');
-  btn.textContent = stopped ? '▶ Tiếp tục cuộn' : '⏸ Dừng cuộn';
-  btn.style.background = stopped ? 'rgba(255,255,255,.1)' : 'rgba(255,255,255,.25)';
-}
-
-/* Gắn listener — chỉ một lần khi load */
-(function attachInteractListeners(){
-  document.addEventListener('wheel',      _onWheel,    {passive:true});
-  document.addEventListener('click',      _onInteract, {passive:true});
-  document.addEventListener('touchstart', _onInteract, {passive:true});
-  document.addEventListener('keydown',    _onInteract, {passive:true});
-})();
-
 /* ═══ STATE ═══ */
 let projects=[], dashTimer=null, dashCountdown=60, activeTabId=null, editingProjId=null;
 
@@ -358,38 +80,35 @@ function showPage(name){
   const navEl=document.querySelector(`.sidebar-link[data-page="${name}"]`);
   if(navEl) navEl.classList.add('active');
   if(name==='dashboard'){
-    _inProjTour=false; _projTourIndex=0;
-    startDashboard(); startAutoScroll();
+    startDashboard();
   }
   else if(name==='lich-su'){
-    _inProjTour=false; stopAutoScroll(); clearInterval(dashTimer);
+    clearInterval(dashTimer);
     loadArchives();
   }
   else if(name==='nhap-lieu'){
-    _inProjTour=false; stopAutoScroll(); clearInterval(dashTimer);
+    clearInterval(dashTimer);
     loadProjects().then(()=>{renderProjManageList();loadItems();});
   }
   else if(name==='khcn'){
-    _inProjTour=false; _scrollCycleCount=0; clearInterval(dashTimer);
+    clearInterval(dashTimer);
     // Nạp lại dữ liệu mới nhất từ server mỗi lần mở tab (để thấy thay đổi của người khác)
     if(typeof loadKhcnData==='function'){
       loadKhcnData().then(()=>{ if(typeof render==='function') render(); });
     } else if(typeof render==='function') render();
-    // Scroll đơn giản: chỉ lên xuống, không tour
-    startSimpleScroll();
   }
   else if(name==='sxkd'){
-    _inProjTour=false; stopAutoScroll(); clearInterval(dashTimer);
+    clearInterval(dashTimer);
     if(typeof loadSxkdData==='function'){
       loadSxkdData().then(()=>{ if(typeof renderSxkd==='function') renderSxkd(); });
     } else if(typeof renderSxkd==='function') renderSxkd();
   }
   else if(name==='nguoi-dung'){
-    _inProjTour=false; stopAutoScroll(); clearInterval(dashTimer);
+    clearInterval(dashTimer);
     if(typeof loadUsersAndAudit==='function') loadUsersAndAudit();
   }
   else if(name==='ho-so'){
-    _inProjTour=false; stopAutoScroll(); clearInterval(dashTimer);
+    clearInterval(dashTimer);
     if(typeof loadProfile==='function') loadProfile();
   }
 }
@@ -404,24 +123,13 @@ function startDashboard(){
 
 function startRefreshTimer(){
   clearInterval(dashTimer); dashCountdown=60;
-  updateRefreshBtn();
   dashTimer=setInterval(()=>{
     dashCountdown--;
-    updateRefreshBtn();
     if($('db-refresh-info2')) $('db-refresh-info2').textContent=`Tự làm mới sau ${dashCountdown}s`;
     if(dashCountdown<=0){ loadDashboard(); dashCountdown=60; }
   },1000);
 }
 
-function updateRefreshBtn(){
-  const btn=$('btn-refresh-main');
-  if(btn) btn.textContent=`⟳ Làm mới (${dashCountdown}s)`;
-}
-
-function manualRefresh(){
-  loadDashboard();
-  startRefreshTimer();
-}
 
 async function loadDashboard(){
   const d=await api('/stats');
@@ -445,33 +153,15 @@ function renderKPIs(d){
   const t=d.totals;
   const onTime=d.projects.filter(p=>p.overdue===0&&p.slow===0).length;
   const inProg=Math.max(0,(t.total||0)-(t.done||0)-(t.problem||0));
-  const avgProg=d.projects.length>0?Math.round(d.projects.reduce((s,p)=>s+(p.progress||0),0)/d.projects.length):0;
-  $('db-kpis').innerHTML=`
-    <div class="kpi k-blue">
-      <div class="kpi-icon">📁</div>
-      <div class="kpi-val">${d.projects.length}</div>
-      <div class="kpi-label">Tổng số dự án</div>
-      <div class="kpi-sub">${onTime}/${d.projects.length} đúng tiến độ</div>
-    </div>
-    <div class="kpi k-green">
-      <div class="kpi-icon">✅</div>
-      <div class="kpi-val">${t.done||0}</div>
-      <div class="kpi-label">Hạng mục hoàn thành</div>
-      <div class="kpi-sub">/ ${t.total||0} hạng mục</div>
-    </div>
-    <div class="kpi k-amber">
-      <div class="kpi-icon">⏳</div>
-      <div class="kpi-val">${inProg}</div>
-      <div class="kpi-label">Hạng mục đang thực hiện</div>
-      <div class="kpi-sub">/ ${t.total||0} hạng mục</div>
-    </div>
-    <div class="kpi k-red">
-      <div class="kpi-icon">🚨</div>
-      <div class="kpi-val">${t.problem||0}</div>
-      <div class="kpi-label">Chậm / Quá hạn</div>
-      <div class="kpi-sub">${t.problem>0?'Cần xử lý ngay':'Không có vấn đề'}</div>
-    </div>
-    `;
+  $('db-kpis').innerHTML = [
+    { val: onTime,       of: d.projects.length, label: 'Dự án đúng tiến độ', color: '#fff' },
+    { val: t.done||0,    of: t.total||0,        label: 'Hoàn thành',         color: '#6ee7b7' },
+    { val: inProg,       of: t.total||0,        label: 'Đang TH',            color: '#93c5fd' },
+    { val: t.problem||0, of: t.total||0,        label: 'Chậm / Quá hạn',     color: '#fca5a5' },
+  ].map(k=>`<div class="pdh-kpi">
+    <div class="pdh-kpi-val" style="color:${k.color}">${k.val}<span style="font-size:16px;opacity:.6">/${k.of}</span></div>
+    <div class="pdh-kpi-label">${k.label}</div>
+  </div>`).join('');
 }
 
 function renderDonut(byStatus,total){
@@ -513,18 +203,21 @@ function renderDonut(byStatus,total){
 function renderAlerts(projs,recent){
   const alerts=[];
   projs.forEach(p=>{
-    if(p.overdue>0) alerts.push({cls:'a-red',icon:'🔴',title:esc(p.name),sub:`${p.overdue} hạng mục quá hạn`});
-    else if((p.slow||0)>0) alerts.push({cls:'a-amber',icon:'⚠️',title:esc(p.name),sub:`${p.slow} hạng mục chậm tiến độ`});
+    if(p.overdue>0) alerts.push({cls:'a-red',icon:'🔴',title:esc(p.name),sub:`${p.overdue} hạng mục quá hạn`,pid:p.id});
+    else if((p.slow||0)>0) alerts.push({cls:'a-amber',icon:'⚠️',title:esc(p.name),sub:`${p.slow} hạng mục chậm tiến độ`,pid:p.id});
   });
   const soon=recent.filter(i=>{
     if(!i.end_date||i.status==='hoan_thanh') return false;
     const days=Math.ceil((new Date(i.end_date)-new Date())/86400000);
     return days>=0&&days<=7;
   });
-  if(soon.length>0) alerts.push({cls:'a-amber',icon:'📅',title:`${soon.length} hạng mục sắp đến hạn`,sub:'Trong vòng 7 ngày tới'});
+  if(soon.length>0){
+    const soonPids=[...new Set(soon.map(i=>i.project_id))];
+    alerts.push({cls:'a-amber',icon:'📅',title:`${soon.length} hạng mục sắp đến hạn`,sub:'Trong vòng 7 ngày tới',pid:soonPids.length===1?soonPids[0]:null});
+  }
   if(!alerts.length) alerts.push({cls:'a-green',icon:'✅',title:'Không có vấn đề cần chú ý',sub:'Tất cả dự án đang trong kiểm soát'});
   $('alert-list').innerHTML=alerts.map(a=>`
-    <div class="alert-item ${a.cls}">
+    <div class="alert-item ${a.cls}${a.pid?' clickable':''}"${a.pid?` onclick="loadProjectDetail(${a.pid})" title="Xem chi tiết dự án"`:''}>
       <div class="alert-icon">${a.icon}</div>
       <div><div class="alert-title">${a.title}</div><div class="alert-sub">${a.sub}</div></div>
     </div>`).join('');
@@ -793,7 +486,8 @@ async function toggleItemDetailView(itemId, pid, rowEl){
         <div class="th-log-item">
           <div class="th-log-dot"></div>
           <div class="th-log-body">
-            <div class="th-log-text">${esc(l.noi_dung)}</div>
+            ${l.noi_dung?`<div class="th-log-text">${esc(l.noi_dung)}</div>`:''}
+            ${thFilesHTML(l.files)}
             <div class="th-log-meta"><span>${fmtDateTime(l.created_at)}</span></div>
           </div>
         </div>`).join('')
@@ -828,11 +522,12 @@ function renderItemDetail(itemId, logs){
   return `<div class="item-detail-inner">
     <div class="item-detail-header">
       <span style="font-size:14px;font-weight:700;color:#0f172a">📋 Lịch sử tình hình triển khai</span>
-      <button class="btn-primary btn-sm" onclick="openAddTinhHinh(${itemId})">➕ Thêm cập nhật</button>
+      <button class="btn-primary btn-sm js-nhap-lieu" onclick="openAddTinhHinh(${itemId})">➕ Thêm cập nhật</button>
     </div>
     <div id="tinh-hinh-form-${itemId}" style="display:none;padding:12px 16px;background:#eff6ff;border-bottom:1px solid #bfdbfe">
       <textarea id="th-input-${itemId}" rows="3" placeholder="Nhập tình hình triển khai..."
         style="width:100%;border:1px solid #bfdbfe;border-radius:8px;padding:10px;font-size:13px;font-family:inherit;resize:vertical;outline:none"></textarea>
+      ${thAttachHTML('th-file-'+itemId)}
       <div style="display:flex;gap:8px;margin-top:8px">
         <button class="btn-primary btn-sm" onclick="saveTinhHinh(${itemId})">💾 Lưu</button>
         <button class="btn-outline btn-sm" onclick="closeTinhHinhForm(${itemId})">Hủy</button>
@@ -843,16 +538,101 @@ function renderItemDetail(itemId, logs){
         <div class="th-log-item">
           <div class="th-log-dot"></div>
           <div class="th-log-body">
-            <div class="th-log-text">${esc(l.noi_dung)}</div>
+            ${l.noi_dung?`<div class="th-log-text">${esc(l.noi_dung)}</div>`:''}
+            ${thFilesHTML(l.files, fid=>`delThFileItem(${fid},${itemId})`)}
             <div class="th-log-meta">
               <span>${fmtDateTime(l.created_at)}</span>
-              <button class="th-log-del" onclick="deleteTinhHinh(${l.id},${itemId})">🗑</button>
+              <button class="th-log-del js-nhap-lieu" onclick="deleteTinhHinh(${l.id},${itemId})">🗑</button>
             </div>
           </div>
         </div>`).join('')
       : '<div style="padding:16px 20px;color:#94a3b8;font-size:13px">Chưa có cập nhật nào. Nhấn ➕ để thêm.</div>'}
     </div>
   </div>`;
+}
+
+/* ── Văn bản đính kèm tình hình (PDF, Word) ── */
+const TH_FILE_EXT = ['.pdf','.doc','.docx'];
+const TH_FILE_MAX = 20*1024*1024;
+
+function fmtFileSize(b){
+  return b>=1048576 ? (b/1048576).toFixed(1)+' MB' : Math.max(1,Math.round(b/1024))+' KB';
+}
+
+/* Danh sách file của 1 cập nhật. onDel: fileId => chuỗi JS gọi khi xóa (bỏ trống = chỉ xem) */
+function thFilesHTML(files, onDel){
+  if(!files||!files.length) return '';
+  return `<div class="th-files">${files.map(f=>`
+    <span class="th-file" onclick="event.stopPropagation()">
+      ${/\.pdf$/i.test(f.ten_goc)?'📕':'📘'}
+      <a href="/api/tinh-hinh-files/${f.id}" target="_blank" rel="noopener" title="${esc(f.ten_goc)}">${esc(f.ten_goc)}</a>
+      <span class="th-file-size">${fmtFileSize(f.kich_thuoc)}</span>
+      ${onDel?`<button class="th-log-del js-nhap-lieu" title="Xóa file" onclick="event.stopPropagation();${onDel(f.id)}">✕</button>`:''}
+    </span>`).join('')}</div>`;
+}
+
+/* Nút chọn file + dòng hiển thị các file đã chọn, đặt trong form nhập tình hình */
+function thAttachHTML(inputId){
+  return `<div class="th-attach-row">
+    <label class="th-attach-btn" for="${inputId}">📎 Đính kèm văn bản</label>
+    <input type="file" id="${inputId}" multiple accept=".pdf,.doc,.docx" style="display:none"
+      onchange="thShowPicked(this)">
+    <span class="th-attach-picked" id="${inputId}-picked">PDF, Word · tối đa 20 MB/file</span>
+  </div>`;
+}
+
+function thShowPicked(input){
+  const files=[...input.files];
+  $(input.id+'-picked').textContent = files.length
+    ? files.map(f=>f.name).join(', ')
+    : 'PDF, Word · tối đa 20 MB/file';
+}
+
+/* Kiểm tra trước khi lưu, để không tạo cập nhật rồi mới báo file sai */
+function thCheckFiles(input){
+  for(const f of (input?.files||[])){
+    const ext=(f.name.match(/\.[^.]+$/)||[''])[0].toLowerCase();
+    if(!TH_FILE_EXT.includes(ext)) return `"${f.name}" không phải file PDF hoặc Word`;
+    if(f.size>TH_FILE_MAX) return `"${f.name}" vượt quá 20 MB`;
+  }
+  return '';
+}
+
+async function thUploadFiles(tinhHinhId, input){
+  const loi=[];
+  for(const f of (input?.files||[])){
+    const r=await fetch('/api/tinh-hinh/'+tinhHinhId+'/files',{
+      method:'POST',
+      headers:{'Content-Type':'application/octet-stream','X-File-Name':encodeURIComponent(f.name)},
+      body:f,
+    });
+    if(!r.ok){
+      const d=await r.json().catch(()=>({}));
+      loi.push(d.error||`Không tải lên được "${f.name}"`);
+    }
+  }
+  if(loi.length) toast(loi.join('\n'),true);
+}
+
+/* Lưu 1 cập nhật tình hình kèm văn bản. Trả về false nếu chưa lưu được. */
+async function thSave(itemId, inputId, fileInputId){
+  const txt=$(inputId)?.value?.trim()||'';
+  const fileInput=$(fileInputId);
+  const coFile=fileInput&&fileInput.files.length>0;
+  if(!txt&&!coFile){ toast('Vui lòng nhập nội dung hoặc đính kèm văn bản',true); return false; }
+  const loi=thCheckFiles(fileInput);
+  if(loi){ toast(loi,true); return false; }
+  const {id}=await api('/items/'+itemId+'/tinh-hinh',{method:'POST',body:{noi_dung:txt}});
+  if(coFile) await thUploadFiles(id, fileInput);
+  toast('Đã lưu tình hình triển khai');
+  return true;
+}
+
+async function thDeleteFile(fileId){
+  if(!confirm('Xóa văn bản đính kèm này?')) return false;
+  await api('/tinh-hinh-files/'+fileId,{method:'DELETE'});
+  toast('Đã xóa văn bản');
+  return true;
 }
 
 function openAddTinhHinh(itemId){
@@ -862,13 +642,17 @@ function openAddTinhHinh(itemId){
 function closeTinhHinhForm(itemId){ $('tinh-hinh-form-'+itemId).style.display='none'; }
 
 async function saveTinhHinh(itemId){
-  const txt=$('th-input-'+itemId)?.value?.trim();
-  if(!txt){ alert('Vui lòng nhập nội dung'); return; }
-  await api('/items/'+itemId+'/tinh-hinh',{method:'POST',body:{noi_dung:txt}});
-  toast('Đã lưu tình hình triển khai');
-  // Reload detail
+  if(!await thSave(itemId, 'th-input-'+itemId, 'th-file-'+itemId)) return;
+  await reloadItemDetail(itemId);
+}
+
+async function reloadItemDetail(itemId){
   const logs=await api('/items/'+itemId+'/tinh-hinh');
   $('detail-content-'+itemId).innerHTML=renderItemDetail(itemId,logs);
+}
+
+async function delThFileItem(fileId, itemId){
+  if(await thDeleteFile(fileId)) await reloadItemDetail(itemId);
 }
 
 async function deleteTinhHinh(id, itemId){
@@ -911,7 +695,7 @@ function renderProjManageList(){
           &nbsp;·&nbsp; ${p.total||0} HM &nbsp;·&nbsp; ${pct}% HT
         </div>
       </div>
-      <div class="proj-manage-actions">
+      <div class="proj-manage-actions js-nhap-lieu">
         <button class="btn-edit" onclick="startEditProject(${p.id})">✏ Sửa</button>
         <button class="btn-archive" onclick="openArchiveModal(${p.id})" title="Đánh dấu hoàn thành & lưu vào lịch sử">✅ HT</button>
         <button class="btn-danger btn-sm" onclick="deleteProject(${p.id})">🗑</button>
@@ -932,8 +716,7 @@ function startEditProject(id){
   $('proj-form-head').textContent='Sửa dự án';
   document.querySelector('[onclick="saveProject()"]').textContent='💾 Lưu thay đổi';
   $('btn-cancel-proj').style.display='';
-  $('pm-name').focus();
-  $('pm-name').scrollIntoView({behavior:'smooth',block:'nearest'});
+  $('pm-name').focus({preventScroll:true});
 }
 
 function cancelEditProject(){
@@ -1078,7 +861,6 @@ function recalcLate() {
 function openItemForm(item=null){
   const w=$('item-form-wrap');
   w.style.display='block';
-  w.scrollIntoView({behavior:'smooth',block:'nearest'});
   $('form-title').textContent=item?'Sửa hạng mục':'Thêm hạng mục mới';
   $('f-id').value        =item?.id||'';
   $('f-name').value      =item?.name||'';
@@ -1190,7 +972,7 @@ function renderItemsPage(){
       <td style="color:#475569">${fmtDate(item.start_date)}</td>
       <td style="${od?'color:#dc2626;font-weight:700':'color:#64748b'}">${fmtDate(item.end_date)}</td>
       <td style="color:#475569">${esc(item.assignee)||'—'}</td>
-      <td style="text-align:center">
+      <td style="text-align:center" class="js-nhap-lieu">
         <button class="btn-edit btn-sm" onclick='editItem(${JSON.stringify(item)})'>✏ Sửa</button>
         <button class="btn-danger btn-sm" onclick="delItem(${item.id})">🗑</button>
       </td>
@@ -1227,7 +1009,6 @@ $('f-search').addEventListener('keyup',e=>{ if(e.key==='Enter'||!e.target.value)
 ══════════════════════════════════════ */
 function openExcelImport(){
   $('excel-import-wrap').style.display='block';
-  $('excel-import-wrap').scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 function downloadItemCsvTemplate(){
   const header='Tên hạng mục,Gói thầu/Nhóm,Đơn vị thi công,Người phụ trách,Ngày bắt đầu,Ngày kết thúc,Ưu tiên,Ghi chú';
@@ -1412,7 +1193,7 @@ async function loadArchives(){
           <a href="/api/archives/${a.id}/export" class="btn-primary btn-sm" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px">
             📥 Xuất JSON
           </a>
-          <button class="btn-outline btn-sm" onclick="unarchiveProject(${p.id})">↩ Khôi phục</button>
+          <button class="btn-outline btn-sm js-nhap-lieu" onclick="unarchiveProject(${p.id})">↩ Khôi phục</button>
         </div>
       </div>
 
@@ -1474,7 +1255,7 @@ async function resetAllData(){
 /* ═══ BOOT ═══ */
 startClock();
 if(!routeFromURL()){
-  loadProjects().then(()=>{ startDashboard(); startAutoScroll(); });
+  loadProjects().then(()=>{ startDashboard(); });
 }
 
 /* ══════════════════════════════════════════════
@@ -1484,13 +1265,6 @@ let _pdData = null; // cache data dự án hiện tại
 
 function goHome(e){
   e.preventDefault();
-  _inProjTour       = false;
-  _projTourIndex    = 0;
-  _scrollCycleCount = 0;
-  scrollMode        = SCROLL_STATE.RUNNING; // về dashboard = coi như người dùng muốn cuộn lại
-  clearTimeout(scrollResumeTimer); clearInterval(_scrollCountdownTick); scrollResumeTimer=null;
-  const _btn=$('btn-scroll-toggle');
-  if(_btn){ _btn.textContent='⏸ Dừng cuộn'; _btn.style.background='rgba(255,255,255,.25)'; }
   history.pushState({}, '', '/');
   showPage('dashboard');
 }
@@ -1498,13 +1272,6 @@ function goHome(e){
 // Nav link "Tổng quan" — xử lý cả khi đang ở trang dự án
 function handleNavDashboard(e){
   e.preventDefault();
-  _inProjTour       = false;
-  _projTourIndex    = 0;
-  _scrollCycleCount = 0;
-  scrollMode        = SCROLL_STATE.RUNNING;
-  clearTimeout(scrollResumeTimer); clearInterval(_scrollCountdownTick); scrollResumeTimer=null;
-  const _btn2=$('btn-scroll-toggle');
-  if(_btn2){ _btn2.textContent='⏸ Dừng cuộn'; _btn2.style.background='rgba(255,255,255,.25)'; }
   history.pushState({}, '', '/');
   showPage('dashboard');
 }
@@ -1515,22 +1282,12 @@ document.addEventListener('click', e=>{
   if(link) $('sidebar')?.blur();
 });
 
-function resumeTour(){
-  const btnTour=$('btn-tour-resume');
-  if(btnTour) btnTour.style.display='none';
-  scrollMode    = SCROLL_STATE.RUNNING;
-  _inProjTour   = true;
-  // Tiếp tục từ dự án hiện tại (không reset index)
-  const projs = projects.slice().sort((a,b)=>a.id-b.id);
-  scrollProjPage(projs);
-}
-
 async function loadProjectDetail(projId){
   // Hiện trang
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-link').forEach(l=>l.classList.remove('active'));
   $('page-du-an').classList.add('active');
-  stopAutoScroll(); clearInterval(dashTimer);
+  clearInterval(dashTimer);
 
   // Update URL
   history.pushState({ projId }, '', '/du-an/'+projId);
@@ -1543,9 +1300,6 @@ async function loadProjectDetail(projId){
     renderPdTinhHinh(d.recentTH);
     renderPdItems(d.items);
     syncPdHeights();
-    // Ẩn nút tour khi load trang mới trong tour
-    const btnTour=$('btn-tour-resume');
-    if(btnTour) btnTour.style.display='none';
   } catch(e) {
     $('pdh-title').textContent = 'Không tìm thấy dự án';
   }
@@ -1747,10 +1501,11 @@ function renderPdTinhHinh(list){
       <div class="th-feed-dot"></div>
       <div class="th-feed-body">
         <div class="th-feed-item-name">${esc(l.item_name)}</div>
-        <div class="th-feed-text">${esc(l.noi_dung)}</div>
+        ${l.noi_dung?`<div class="th-feed-text">${esc(l.noi_dung)}</div>`:''}
+        ${thFilesHTML(l.files)}
         <div class="th-feed-time">
           ${fmtDateTime(l.created_at)}
-          <button class="th-log-del" onclick="deleteTinhHinhPd(${l.id})" title="Xóa">🗑</button>
+          <button class="th-log-del js-nhap-lieu" onclick="deleteTinhHinhPd(${l.id})" title="Xóa">🗑</button>
         </div>
       </div>
     </div>`).join('');
@@ -1802,11 +1557,12 @@ function renderPdItems(items, statusFilter='', page=1){
         <div class="item-detail-inner">
           <div class="item-detail-header">
             <span style="font-size:14px;font-weight:700;color:#0f172a">📋 Tình hình triển khai – ${esc(i.name)}</span>
-            <button class="btn-primary btn-sm" onclick="event.stopPropagation();openAddTinhHinhPd(${i.id})">➕ Thêm cập nhật</button>
+            <button class="btn-primary btn-sm js-nhap-lieu" onclick="event.stopPropagation();openAddTinhHinhPd(${i.id})">➕ Thêm cập nhật</button>
           </div>
           <div id="pd-th-form-${i.id}" style="display:none;padding:12px 16px;background:#eff6ff;border-bottom:1px solid #bfdbfe" onclick="event.stopPropagation()">
             <textarea id="pd-th-input-${i.id}" rows="3" placeholder="Nhập tình hình triển khai..."
               style="width:100%;border:1px solid #bfdbfe;border-radius:8px;padding:10px;font-size:13px;font-family:inherit;resize:vertical;outline:none"></textarea>
+            ${thAttachHTML('pd-th-file-'+i.id)}
             <div style="display:flex;gap:8px;margin-top:8px">
               <button class="btn-primary btn-sm" onclick="event.stopPropagation();saveTinhHinhPd(${i.id})">💾 Lưu</button>
               <button class="btn-outline btn-sm" onclick="event.stopPropagation();$('pd-th-form-${i.id}').style.display='none'">Hủy</button>
@@ -1817,10 +1573,11 @@ function renderPdItems(items, statusFilter='', page=1){
               <div class="th-log-item">
                 <div class="th-log-dot"></div>
                 <div class="th-log-body">
-                  <div class="th-log-text">${esc(l.noi_dung)}</div>
+                  ${l.noi_dung?`<div class="th-log-text">${esc(l.noi_dung)}</div>`:''}
+                  ${thFilesHTML(l.files, fid=>`delThFilePd(${fid})`)}
                   <div class="th-log-meta">
                     <span>${fmtDateTime(l.created_at)}</span>
-                    <button class="th-log-del" onclick="event.stopPropagation();delTinhHinhPd(${l.id},${i.id})">🗑</button>
+                    <button class="th-log-del js-nhap-lieu" onclick="event.stopPropagation();delTinhHinhPd(${l.id},${i.id})">🗑</button>
                   </div>
                 </div>
               </div>`).join('')
@@ -1873,15 +1630,24 @@ function openAddTinhHinhPd(itemId){
 }
 
 async function saveTinhHinhPd(itemId){
-  const txt=$('pd-th-input-'+itemId)?.value?.trim();
-  if(!txt){ toast('Vui lòng nhập nội dung',true); return; }
-  await api('/items/'+itemId+'/tinh-hinh',{method:'POST',body:{noi_dung:txt}});
-  toast('Đã lưu tình hình triển khai');
-  // Reload lại trang chi tiết
+  if(!await thSave(itemId, 'pd-th-input-'+itemId, 'pd-th-file-'+itemId)) return;
+  await reloadPdKeepOpen(itemId);
+}
+
+/* Tải lại trang chi tiết dự án, giữ hạng mục đang mở */
+async function reloadPdKeepOpen(itemId){
   const d=await api('/projects/'+_pdData.project.id+'/detail');
   _pdData=d;
   renderPdItems(d.items, $('pd-status-filter')?.value||'', _pdPage);
   renderPdTinhHinh(d.recentTH);
+  const row=$('pd-detail-'+itemId);
+  if(row){ row.style.display=''; row.previousElementSibling?.classList.add('row-active'); }
+}
+
+async function delThFilePd(fileId){
+  if(!await thDeleteFile(fileId)) return;
+  const openRow=[...document.querySelectorAll('[id^="pd-detail-"]')].find(r=>r.style.display!=='none');
+  await reloadPdKeepOpen(openRow?openRow.id.replace('pd-detail-',''):0);
 }
 
 async function delTinhHinhPd(id, itemId){

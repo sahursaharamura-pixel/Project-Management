@@ -9,7 +9,9 @@ const archiveService = require('../services/archive.service');
 const adminService   = require('../services/admin.service');
 const khcnSxkdService = require('../services/khcnSxkd.service');
 const reminderService = require('../services/reminder.service');
-const { requireAuth, requireAdmin } = require('../middleware/auth');
+const fileService    = require('../services/tinhHinhFile.service');
+const contentDisposition = require('content-disposition');
+const { requireAuth, requireAdmin, requireNhapLieu } = require('../middleware/auth');
 const ah = require('../middleware/asyncHandler');
 const config = require('../config');
 
@@ -22,80 +24,107 @@ module.exports = () => {
     res.json(await statsService.tongHop());
   }));
 
-  /* ── DỰ ÁN ── */
-  router.get('/projects', ah(async (req, res) => {
+  /* ── DỰ ÁN ──
+     Danh sách/chi tiết dự án chỉ dành cho người đã đăng nhập; khách vãng lai
+     chỉ được xem /stats (dashboard tổng quan), không xem được chi tiết dự án. */
+  router.get('/projects', requireAuth, ah(async (req, res) => {
     res.json(await projectService.danhSach());
   }));
 
-  router.post('/projects', requireAuth, ah(async (req, res) => {
+  router.post('/projects', requireNhapLieu, ah(async (req, res) => {
     res.json({ id: await projectService.tao(req.session.user, req.body) });
   }));
 
-  router.put('/projects/:id', requireAuth, ah(async (req, res) => {
+  router.put('/projects/:id', requireNhapLieu, ah(async (req, res) => {
     await projectService.capNhat(req.session.user, id(req), req.body);
     res.json({ ok: true });
   }));
 
-  router.delete('/projects/:id', requireAuth, ah(async (req, res) => {
+  router.delete('/projects/:id', requireNhapLieu, ah(async (req, res) => {
     await projectService.xoa(req.session.user, id(req));
     res.json({ ok: true });
   }));
 
-  router.get('/projects/:id/detail', ah(async (req, res) => {
+  router.get('/projects/:id/detail', requireAuth, ah(async (req, res) => {
     res.json(await projectService.chiTiet(id(req)));
   }));
 
   /* ── LƯU TRỮ / KHÔI PHỤC DỰ ÁN ── */
-  router.post('/projects/:id/archive', requireAuth, ah(async (req, res) => {
+  router.post('/projects/:id/archive', requireNhapLieu, ah(async (req, res) => {
     const archiveId = await projectService.luuTru(req.session.user, id(req), req.body.note);
     res.json({ ok: true, archive_id: archiveId });
   }));
 
-  router.post('/projects/:id/unarchive', requireAuth, ah(async (req, res) => {
+  router.post('/projects/:id/unarchive', requireNhapLieu, ah(async (req, res) => {
     await projectService.khoiPhuc(req.session.user, id(req));
     res.json({ ok: true });
   }));
 
   /* ── HẠNG MỤC ── */
-  router.get('/items', ah(async (req, res) => {
+  router.get('/items', requireAuth, ah(async (req, res) => {
     res.json(await itemService.danhSach(req.query));
   }));
 
-  router.post('/items', requireAuth, ah(async (req, res) => {
+  router.post('/items', requireNhapLieu, ah(async (req, res) => {
     res.json({ id: await itemService.tao(req.session.user, req.body) });
   }));
 
-  router.put('/items/:id', requireAuth, ah(async (req, res) => {
+  router.put('/items/:id', requireNhapLieu, ah(async (req, res) => {
     await itemService.capNhat(req.session.user, id(req), req.body);
     res.json({ ok: true });
   }));
 
-  router.delete('/items/:id', requireAuth, ah(async (req, res) => {
+  router.delete('/items/:id', requireNhapLieu, ah(async (req, res) => {
     await itemService.xoa(req.session.user, id(req));
     res.json({ ok: true });
   }));
 
   /* ── TÌNH HÌNH TRIỂN KHAI ── */
-  router.get('/items/:id/tinh-hinh', ah(async (req, res) => {
+  router.get('/items/:id/tinh-hinh', requireAuth, ah(async (req, res) => {
     res.json(await itemService.danhSachTinhHinh(id(req)));
   }));
 
-  router.post('/items/:id/tinh-hinh', requireAuth, ah(async (req, res) => {
+  router.post('/items/:id/tinh-hinh', requireNhapLieu, ah(async (req, res) => {
     const newId = await itemService.themTinhHinh(req.session.user, id(req), req.body.noi_dung);
     res.json({ id: newId });
   }));
 
-  router.delete('/tinh-hinh/:id', requireAuth, ah(async (req, res) => {
+  router.delete('/tinh-hinh/:id', requireNhapLieu, ah(async (req, res) => {
     await itemService.xoaTinhHinh(req.session.user, id(req));
     res.json({ ok: true });
   }));
 
+  /* ── VĂN BẢN ĐÍNH KÈM TÌNH HÌNH (PDF, Word) ──
+     Mỗi request gửi 1 file dạng nhị phân thô (body = nội dung file),
+     tên gốc nằm ở header X-File-Name (đã encodeURIComponent). */
+  router.post('/tinh-hinh/:id/files', requireNhapLieu,
+    express.raw({ type: () => true, limit: fileService.DUNG_LUONG_TOI_DA }),
+    ah(async (req, res) => {
+      const tenGoc = decodeURIComponent(req.headers['x-file-name'] || '');
+      res.json({ id: await fileService.tai(req.session.user, id(req), tenGoc, req.body) });
+    }));
+
+  /* PDF mở xem ngay trên trình duyệt, Word thì tải về */
+  router.get('/tinh-hinh-files/:id', requireAuth, ah(async (req, res) => {
+    const f = await fileService.layFile(id(req));
+    res.setHeader('Content-Type', f.mime);
+    res.setHeader('Content-Disposition', contentDisposition(f.ten_goc, {
+      type: f.mime === 'application/pdf' ? 'inline' : 'attachment',
+    }));
+    res.sendFile(f.duongDan);
+  }));
+
+  router.delete('/tinh-hinh-files/:id', requireNhapLieu, ah(async (req, res) => {
+    await fileService.xoa(req.session.user, id(req));
+    res.json({ ok: true });
+  }));
+
   /* ── BẢN LƯU TRỮ ── */
-  router.get('/archives', ah(async (req, res) => {
+  router.get('/archives', requireAuth, ah(async (req, res) => {
     res.json(await archiveService.danhSach());
   }));
 
-  router.get('/archives/:id/export', ah(async (req, res) => {
+  router.get('/archives/:id/export', requireAuth, ah(async (req, res) => {
     const { banLuuTru, tenFile } = await archiveService.xuatFile(id(req));
     res.setHeader('Content-Disposition', `attachment; filename="${tenFile}"`);
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
@@ -115,7 +144,7 @@ module.exports = () => {
     res.json(await khcnSxkdService.getKhcn());
   }));
 
-  router.put('/khcn-data', requireAuth, ah(async (req, res) => {
+  router.put('/khcn-data', requireNhapLieu, ah(async (req, res) => {
     await khcnSxkdService.saveKhcn(req.body);
     res.json({ ok: true });
   }));
@@ -124,7 +153,7 @@ module.exports = () => {
     res.json(await khcnSxkdService.getSxkd());
   }));
 
-  router.put('/sxkd-data', requireAuth, ah(async (req, res) => {
+  router.put('/sxkd-data', requireNhapLieu, ah(async (req, res) => {
     await khcnSxkdService.saveSxkd(req.body);
     res.json({ ok: true });
   }));

@@ -3,6 +3,8 @@ const projectRepo  = require('../repositories/project.repo');
 const itemRepo     = require('../repositories/item.repo');
 const tinhHinhRepo = require('../repositories/tinhHinh.repo');
 const archiveRepo  = require('../repositories/archive.repo');
+const fileRepo     = require('../repositories/tinhHinhFile.repo');
+const fileService  = require('./tinhHinhFile.service');
 const itemService  = require('./item.service');
 const audit        = require('./audit.service');
 const rules        = require('./status.rules');
@@ -70,8 +72,11 @@ async function capNhat(nguoiDung, id, f) {
 
 async function xoa(nguoiDung, id) {
   const project = await projectRepo.findById(id);
-  /* Hạng mục và tình hình tự xóa theo (ON DELETE CASCADE trong schema). */
+  /* Hạng mục, tình hình và văn bản đính kèm tự xóa theo (ON DELETE CASCADE
+     trong schema); file trên đĩa thì phải lấy danh sách trước rồi dọn tay. */
+  const files = await fileRepo.findTenLuuByProject(id);
   await projectRepo.remove(id);
+  await fileService.xoaTrenDia(files);
   await audit.ghiNhatKy({
     user: nguoiDung, action: 'delete', entity: 'project',
     entity_id: id, entity_name: project?.name || '',
@@ -86,7 +91,9 @@ async function chiTiet(id) {
   let items = await itemService.dongBoTrangThai(await itemRepo.findByProject(id));
   items = items.sort((a, b) => new Date(a.start_date || 0) - new Date(b.start_date || 0));
 
-  const tinhHinhAll = await tinhHinhRepo.findByItemIds(items.map(i => i.id));
+  const tinhHinhAll = await fileService.ganFile(
+    await tinhHinhRepo.findByItemIds(items.map(i => i.id))
+  );
 
   const itemsWithTH = items.map(i => ({
     ...i,

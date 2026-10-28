@@ -3,7 +3,12 @@
 const { query } = require('../db/mysql');
 
 const findAll        = ()   => query('SELECT * FROM projects');
-const findAllActive  = ()   => query('SELECT * FROM projects WHERE archived = 0');
+/* Kèm tên người phụ trách (manager_name) để giao diện hiển thị. */
+const findAllActive  = ()   => query(
+  `SELECT p.*, u.name AS manager_name FROM projects p
+   LEFT JOIN users u ON u.id = p.manager_user_id
+   WHERE p.archived = 0`
+);
 const findNames      = ()   => query('SELECT id, name FROM projects');
 
 async function findById(id) {

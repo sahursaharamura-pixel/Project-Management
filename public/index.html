@@ -130,6 +130,7 @@
             <div class="fg span2"><label>Tên dự án <span class="req">*</span></label><input id="pm-name" placeholder="VD: Đường tỉnh 921"></div>
             <div class="fg"><label>Mã dự án</label><input id="pm-code" placeholder="VD: DA005"></div>
             <div class="fg" style="display:none"><label>Kinh phí tổng (VNĐ)</label><input type="number" id="pm-budget" placeholder="0"></div>
+            <div class="fg"><label>Người phụ trách</label><input id="pm-manager" readonly title="Tự động là người thêm dự án" style="background:#f8fafc;color:#475569"></div>
             <div class="fg"><label>Ngày bắt đầu</label><input type="date" id="pm-start"></div>
             <div class="fg"><label>Ngày hoàn thành dự kiến</label><input type="date" id="pm-end"></div>
             <div class="fg span2"><label>Ghi chú</label><input id="pm-note" placeholder="Mô tả ngắn về dự án"></div>
@@ -215,7 +216,7 @@
                 <div class="fg"><label>Thuộc dự án <span class="req">*</span></label><select id="f-project" required><option value="">-- Chọn --</option></select></div>
                 <div class="fg"><label>Gói thầu / Nhóm</label><input id="f-group" placeholder="VD: Gói thầu số 2"></div>
                 <div class="fg"><label>Đơn vị thi công</label><input id="f-contractor" placeholder="VD: Cty TNHH XD ABC"></div>
-                <div class="fg"><label>Người phụ trách</label><input id="f-assignee" placeholder="Họ tên cán bộ"></div>
+                <div class="fg"><label>Người phụ trách</label><input id="f-assignee" readonly title="Tự động là người thêm hạng mục" style="background:#f8fafc;color:#475569"></div>
                 <div class="fg">
                   <label>Ngày bắt đầu <span class="req">*</span></label>
                   <input type="date" id="f-start" required oninput="updateAutoStatus()">

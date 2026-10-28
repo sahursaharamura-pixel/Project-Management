@@ -678,6 +678,8 @@ async function loadProjects(){
 }
 
 function renderProjManageList(){
+  // Form thêm mới: người phụ trách mặc định là người đang đăng nhập
+  if(!editingProjId && $('pm-manager')) $('pm-manager').value=currentUser?.name||'';
   const el=$('proj-manage-list'); if(!el) return;
   if(!projects.length){
     el.innerHTML='<div style="padding:20px;text-align:center;color:#94a3b8;font-size:14px">Chưa có dự án nào</div>';
@@ -693,6 +695,7 @@ function renderProjManageList(){
         <div class="proj-manage-meta">
           ${p.start_date?fmtDate(p.start_date):'?'} → ${p.end_date?fmtDate(p.end_date):'?'}
           &nbsp;·&nbsp; ${p.total||0} HM &nbsp;·&nbsp; ${pct}% HT
+          &nbsp;·&nbsp; 👤 ${esc(p.manager_name)||'Chưa có người phụ trách'}
         </div>
       </div>
       <div class="proj-manage-actions js-nhap-lieu">
@@ -713,6 +716,7 @@ function startEditProject(id){
   $('pm-start').value =p.start_date?.split('T')[0]||'';
   $('pm-end').value   =p.end_date?.split('T')[0]||'';
   $('pm-note').value  =p.note||'';
+  $('pm-manager').value=p.manager_name||'—';
   $('proj-form-head').textContent='Sửa dự án';
   document.querySelector('[onclick="saveProject()"]').textContent='💾 Lưu thay đổi';
   $('btn-cancel-proj').style.display='';
@@ -723,6 +727,7 @@ function cancelEditProject(){
   editingProjId=null;
   ['pm-name','pm-code','pm-note','pm-start','pm-end'].forEach(id=>$(id).value='');
   $('pm-budget').value='';
+  $('pm-manager').value=currentUser?.name||'';
   $('proj-form-head').textContent='Thêm dự án mới';
   document.querySelector('[onclick="saveProject()"]').textContent='➕ Thêm dự án';
   $('btn-cancel-proj').style.display='none';
@@ -867,7 +872,7 @@ function openItemForm(item=null){
   $('f-project').value   =item?.project_id||'';
   $('f-group').value     =item?.group_name||'';
   $('f-contractor').value=item?.contractor||'';
-  $('f-assignee').value  =item?.assignee||'';
+  $('f-assignee').value  =item ? (item.assignee||'—') : (currentUser?.name||'');
   $('f-start').value     =item?.start_date?.split('T')[0]||'';
   $('f-end').value       =item?.end_date?.split('T')[0]||'';
   $('f-priority').value  =item?.priority||'binh_thuong';
@@ -916,7 +921,7 @@ $('item-form').addEventListener('submit',async e=>{
   const body={
     project_id:$('f-project').value, name:$('f-name').value.trim(),
     group_name:$('f-group').value,   contractor:$('f-contractor').value,
-    assignee:$('f-assignee').value,  start_date:$('f-start').value,
+    start_date:$('f-start').value,
     end_date:$('f-end').value,       status:$('f-status').value,
     priority:$('f-priority').value,
     done_date:$('f-done')?.checked ? ($('f-done-date')?.value||null) : null,
@@ -1098,7 +1103,7 @@ function parseCSV(text){
           <td style="color:#94a3b8">${i+1}</td>
           <td><b>${esc(r.name)||'⚠ Trống'}</b></td>
           <td>${esc(r.group_name)||'—'}</td>
-          <td>${esc(r.assignee)||'—'}</td>
+          <td>${esc(currentUser?.name)||'—'}</td>
           <td>${r.start_date||'—'}</td>
           <td>${r.end_date||'—'}</td>
           <td>${r.priority==='khan_cap'?'🔴':r.priority==='quan_trong'?'⭐':'—'}</td>
@@ -1137,7 +1142,7 @@ async function importExcelRows(){
     try{
       await api('/items',{method:'POST',body:{
         project_id:projId, name:row.name, group_name:row.group_name,
-        contractor:row.contractor, assignee:row.assignee,
+        contractor:row.contractor,
         start_date:row.start_date, end_date:row.end_date,
         priority:row.priority, note:row.note, status:'chua_bat_dau',
       }});

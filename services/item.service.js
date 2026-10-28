@@ -38,7 +38,6 @@ function chuanHoaHangMuc(f) {
     name:       f.name,
     group_name: f.group_name || '',
     contractor: f.contractor || '',
-    assignee:   f.assignee   || '',
     start_date: f.start_date || null,
     end_date:   f.end_date   || null,
     progress:   parseInt(f.progress) || 0,
@@ -82,8 +81,10 @@ async function tao(nguoiDung, f) {
   if (!f.name || !f.project_id) throw badRequest('Thiếu thông tin bắt buộc');
   await kiemTraDuAnTonTai(parseInt(f.project_id));
 
+  /* Người phụ trách hạng mục luôn là người thêm hạng mục. */
   const id = await itemRepo.insert({
     ...chuanHoaHangMuc(f),
+    assignee: nguoiDung.name || '',
     status:   f.status   || rules.STATUS.CHUA_BAT_DAU,
     priority: f.priority || 'binh_thuong',
   });
@@ -99,8 +100,13 @@ async function capNhat(nguoiDung, id, f) {
   if (!f.name || !f.project_id) throw badRequest('Thiếu thông tin bắt buộc');
   await kiemTraDuAnTonTai(parseInt(f.project_id));
 
+  /* Người phụ trách cố định theo người tạo -> sửa không đổi được. */
+  const hienTai = await itemRepo.findById(id);
+  if (!hienTai) throw notFound('Không tìm thấy hạng mục');
+
   await itemRepo.update(id, {
     ...chuanHoaHangMuc(f),
+    assignee:  hienTai.assignee || '',
     status:    f.status,
     priority:  f.priority,
     done_date: f.done_date || null,

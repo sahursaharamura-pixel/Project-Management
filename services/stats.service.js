@@ -6,17 +6,20 @@ const itemRepo     = require('../repositories/item.repo');
 const tinhHinhRepo = require('../repositories/tinhHinh.repo');
 const itemService  = require('./item.service');
 const rules        = require('./status.rules');
+const siteService  = require('./site.service');
 
 const SO_HANG_MUC_GAN_DAY = 10;
 
-async function tongHop() {
-  const projects = await projectRepo.findAll();
+/* nguoiDung = null với khách chưa đăng nhập -> site mặc định. */
+async function tongHop(nguoiDung) {
+  const site = siteService.siteCua(nguoiDung);
+  const projects = await projectRepo.findAll(site);
 
   const idDaLuuTru = new Set(projects.filter(p => p.archived).map(p => p.id));
   const duAnDangChay = projects.filter(p => !p.archived);
 
   /* Bỏ hạng mục của dự án đã lưu trữ, rồi đồng bộ trạng thái theo ngày. */
-  let items = (await itemRepo.findAll()).filter(i => !idDaLuuTru.has(i.project_id));
+  let items = (await itemRepo.findAll(site)).filter(i => !idDaLuuTru.has(i.project_id));
   items = await itemService.dongBoTrangThai(items);
 
   /* Số liệu từng dự án */
@@ -55,7 +58,7 @@ async function tongHop() {
     .map(i => ({ ...i, project_name: tenDuAn[i.project_id] || '' }));
 
   /* Toàn bộ hạng mục, kèm bản tin tình hình mới nhất của mỗi hạng mục */
-  const tinhHinhAll = await tinhHinhRepo.findAll();
+  const tinhHinhAll = await tinhHinhRepo.findAll(site);
   const allItems = items.map(i => {
     const cuaHangMuc = tinhHinhAll
       .filter(l => l.item_id === i.id)

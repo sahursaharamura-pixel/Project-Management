@@ -2,30 +2,27 @@
 const { query } = require('../db/mysql');
 const audit     = require('./audit.service');
 const fileService = require('./tinhHinhFile.service');
+const fileRepo    = require('../repositories/tinhHinhFile.repo');
+const siteService = require('./site.service');
 
-/* XÓA SẠCH dữ liệu nghiệp vụ và đưa AUTO_INCREMENT về 1.
+/* XÓA SẠCH dữ liệu nghiệp vụ CỦA SITE ĐANG LÀM VIỆC (site khác giữ nguyên).
    KHÔNG đụng tới bảng `users` và `audit_log` (giữ đúng hành vi cũ)
    -> tài khoản đăng nhập và lịch sử thao tác vẫn còn nguyên.
 
-   Thứ tự xóa phải theo chiều phụ thuộc khóa ngoại:
-   tinh_hinh_files -> tinh_hinh -> items -> archives -> projects */
+   Xóa projects -> items, tinh_hinh, tinh_hinh_files tự xóa theo (ON DELETE CASCADE).
+   Không reset AUTO_INCREMENT nữa vì các site dùng chung bảng. File trên đĩa
+   phải lấy danh sách trước khi xóa DB rồi mới dọn. */
 async function resetToanBoDuLieu(nguoiDung) {
-  await query('DELETE FROM tinh_hinh_files');
-  await query('DELETE FROM tinh_hinh');
-  await query('DELETE FROM items');
-  await query('DELETE FROM archives');
-  await query('DELETE FROM projects');
+  const site  = siteService.siteCua(nguoiDung);
+  const files = await fileRepo.findTenLuuBySite(site);
 
-  await query('ALTER TABLE projects  AUTO_INCREMENT = 1');
-  await query('ALTER TABLE items     AUTO_INCREMENT = 1');
-  await query('ALTER TABLE tinh_hinh AUTO_INCREMENT = 1');
-  await query('ALTER TABLE tinh_hinh_files AUTO_INCREMENT = 1');
-  await query('ALTER TABLE archives  AUTO_INCREMENT = 1');
-  await fileService.xoaToanBoTrenDia();
+  await query('DELETE FROM archives WHERE site = ?', [site]);
+  await query('DELETE FROM projects WHERE site = ?', [site]);
+  await fileService.xoaTrenDia(files);
 
   await audit.ghiNhatKy({
     user: nguoiDung, action: 'delete', entity: 'project',
-    entity_name: 'TOÀN BỘ DỮ LIỆU', detail: 'Reset hệ thống',
+    entity_name: 'TOÀN BỘ DỮ LIỆU', detail: `Reset dữ liệu site ${siteService.thongTin(site).ten}`,
   });
 }
 

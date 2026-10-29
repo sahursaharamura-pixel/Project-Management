@@ -1248,7 +1248,7 @@ async function unarchiveProject(projId){
 }
 
 async function resetAllData(){
-  if(!confirm('⚠ Xóa TOÀN BỘ dữ liệu?\n\nTất cả dự án, hạng mục, lịch sử sẽ bị xóa vĩnh viễn.\nKhông thể hoàn tác!')) return;
+  if(!confirm('⚠ Xóa TOÀN BỘ dữ liệu của đơn vị đang xem?\n\nTất cả dự án, hạng mục, lịch sử của đơn vị này sẽ bị xóa vĩnh viễn (đơn vị khác giữ nguyên).\nKhông thể hoàn tác!')) return;
   if(!confirm('Xác nhận lần 2: Bạn chắc chắn muốn xóa hết?')) return;
   await api('/reset', { method:'POST' });
   toast('Đã xóa toàn bộ dữ liệu');

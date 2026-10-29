@@ -6,6 +6,7 @@ const fileRepo     = require('../repositories/tinhHinhFile.repo');
 const fileService  = require('./tinhHinhFile.service');
 const audit       = require('./audit.service');
 const rules        = require('./status.rules');
+const siteService  = require('./site.service');
 const { badRequest, notFound } = require('../utils/AppError');
 
 /* Đối chiếu trạng thái đang lưu với trạng thái suy ra từ ngày tháng.
@@ -26,8 +27,8 @@ async function dongBoTrangThai(items) {
 }
 
 /* Bảng tra id -> tên dự án, để gắn `project_name` vào hạng mục. */
-async function bangTenDuAn() {
-  const projects = await projectRepo.findNames();
+async function bangTenDuAn(site) {
+  const projects = await projectRepo.findNames(site);
   return Object.fromEntries(projects.map(p => [p.id, p.name]));
 }
 
@@ -47,17 +48,22 @@ function chuanHoaHangMuc(f) {
   };
 }
 
-async function kiemTraDuAnTonTai(projectId) {
-  if (!(await projectRepo.exists(projectId))) {
+async function kiemTraDuAnTonTai(projectId, site) {
+  if (!(await projectRepo.exists(projectId, site))) {
     throw badRequest('Dự án không tồn tại');
   }
 }
 
-/* ── DANH SÁCH HẠNG MỤC (có lọc) ──────────────────────────── */
-async function danhSach({ project_id, status, search }) {
-  const tenDuAn = await bangTenDuAn();
+/* Chặn thao tác trên hạng mục / tình hình thuộc site khác. */
+async function kiemTraHangMucCuaSite(nguoiDung, itemId) {
+  siteService.kiemTraThuoc(siteService.siteCua(nguoiDung), await itemRepo.findSite(itemId), 'Không tìm thấy hạng mục');
+}
 
-  let items = await dongBoTrangThai(await itemRepo.findAll());
+/* ── DANH SÁCH HẠNG MỤC (có lọc) ──────────────────────────── */
+async function danhSach(site, { project_id, status, search }) {
+  const tenDuAn = await bangTenDuAn(site);
+
+  let items = await dongBoTrangThai(await itemRepo.findAll(site));
 
   if (project_id) items = items.filter(i => i.project_id === parseInt(project_id));
   if (status)     items = items.filter(i => i.status === status);
@@ -79,7 +85,7 @@ async function danhSach({ project_id, status, search }) {
 /* ── TẠO / SỬA / XÓA HẠNG MỤC ─────────────────────────────── */
 async function tao(nguoiDung, f) {
   if (!f.name || !f.project_id) throw badRequest('Thiếu thông tin bắt buộc');
-  await kiemTraDuAnTonTai(parseInt(f.project_id));
+  await kiemTraDuAnTonTai(parseInt(f.project_id), siteService.siteCua(nguoiDung));
 
   /* Người phụ trách hạng mục luôn là người thêm hạng mục. */
   const id = await itemRepo.insert({
@@ -98,7 +104,8 @@ async function tao(nguoiDung, f) {
 
 async function capNhat(nguoiDung, id, f) {
   if (!f.name || !f.project_id) throw badRequest('Thiếu thông tin bắt buộc');
-  await kiemTraDuAnTonTai(parseInt(f.project_id));
+  await kiemTraHangMucCuaSite(nguoiDung, id);
+  await kiemTraDuAnTonTai(parseInt(f.project_id), siteService.siteCua(nguoiDung));
 
   /* Người phụ trách cố định theo người tạo -> sửa không đổi được. */
   const hienTai = await itemRepo.findById(id);
@@ -119,6 +126,7 @@ async function capNhat(nguoiDung, id, f) {
 }
 
 async function xoa(nguoiDung, id) {
+  await kiemTraHangMucCuaSite(nguoiDung, id);
   const item = await itemRepo.findById(id);
   const files = await fileRepo.findTenLuuByItem(id);
   await itemRepo.remove(id);
@@ -130,10 +138,13 @@ async function xoa(nguoiDung, id) {
 }
 
 /* ── TÌNH HÌNH TRIỂN KHAI ─────────────────────────────────── */
-const danhSachTinhHinh = async (itemId) =>
-  fileService.ganFile(await tinhHinhRepo.findByItem(itemId));
+async function danhSachTinhHinh(nguoiDung, itemId) {
+  await kiemTraHangMucCuaSite(nguoiDung, itemId);
+  return fileService.ganFile(await tinhHinhRepo.findByItem(itemId));
+}
 
 async function themTinhHinh(nguoiDung, itemId, noiDung) {
+  await kiemTraHangMucCuaSite(nguoiDung, itemId);
   const item = await itemRepo.findById(itemId);
   if (!item) throw notFound('Không tìm thấy hạng mục');
 
@@ -149,6 +160,7 @@ async function themTinhHinh(nguoiDung, itemId, noiDung) {
 }
 
 async function xoaTinhHinh(nguoiDung, id) {
+  siteService.kiemTraThuoc(siteService.siteCua(nguoiDung), await tinhHinhRepo.findSite(id));
   const log = await tinhHinhRepo.findById(id);
   const files = await fileRepo.findTenLuuByTinhHinh(id);
   await tinhHinhRepo.remove(id);

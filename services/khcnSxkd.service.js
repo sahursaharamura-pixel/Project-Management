@@ -7,6 +7,10 @@
 const path = require('path');
 const { readJsonFile, writeJsonFile } = require('../utils/jsonFileStore');
 const { badRequest } = require('../utils/AppError');
+const siteService = require('./site.service');
+
+/* 2 trang này chỉ có ở site Ban KHCN&CĐS (coTrangPhu), site khác bị chặn. */
+const kiemTra = (nguoiDung) => siteService.kiemTraTrangPhu(siteService.siteCua(nguoiDung));
 
 const DATA_DIR  = path.join(__dirname, '..', 'data');
 const KHCN_FILE = path.join(DATA_DIR, 'khcn-data.json');
@@ -15,22 +19,26 @@ const SXKD_FILE = path.join(DATA_DIR, 'sxkd-data.json');
 const KHCN_EMPTY = { groups: [], items: [] };
 const SXKD_EMPTY = { tscd: [], cphd: [], doichieu: [] };
 
-async function getKhcn() {
+async function getKhcn(nguoiDung) {
+  kiemTra(nguoiDung);
   return readJsonFile(KHCN_FILE, KHCN_EMPTY);
 }
 
-async function saveKhcn(payload) {
+async function saveKhcn(nguoiDung, payload) {
+  kiemTra(nguoiDung);
   if (!payload || !Array.isArray(payload.groups) || !Array.isArray(payload.items)) {
     throw badRequest('Dữ liệu KHCN không hợp lệ (thiếu groups/items dạng mảng)');
   }
   await writeJsonFile(KHCN_FILE, { groups: payload.groups, items: payload.items });
 }
 
-async function getSxkd() {
+async function getSxkd(nguoiDung) {
+  kiemTra(nguoiDung);
   return readJsonFile(SXKD_FILE, SXKD_EMPTY);
 }
 
-async function saveSxkd(payload) {
+async function saveSxkd(nguoiDung, payload) {
+  kiemTra(nguoiDung);
   if (!payload || !Array.isArray(payload.tscd) || !Array.isArray(payload.cphd) || !Array.isArray(payload.doichieu)) {
     throw badRequest('Dữ liệu SXKD không hợp lệ (thiếu tscd/cphd/doichieu dạng mảng)');
   }

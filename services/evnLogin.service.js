@@ -37,9 +37,12 @@ async function taoHoacDongBo(evnUser) {
   const chucDanh   = evnUser.chucDanh || null;
   const phongBan   = evnUser.phongBan?.ten || null;
   const email      = evnUser.email || null;
-  /* "Đơn vị": API EVN có thể trả ở nhiều dạng tuỳ cấu hình -> thử vài khoá
-     phổ biến, không có thì để null (tài khoản nội bộ cũng null). */
-  const donVi      = evnUser.donVi?.ten || evnUser.tenDonVi || evnUser.donVi || null;
+  /* "Đơn vị": SmartEVN hiện chỉ trả { donVi: { id } }, không kèm tên.
+     don_vi_id quyết định site người dùng được vào (services/site.service.js).
+     Tên đơn vị giữ lại nếu sau này API có trả; chỉ nhận chuỗi, không ghi object. */
+  const donViId    = parseInt(evnUser.donVi?.id, 10) || null;
+  const tenDonVi   = evnUser.donVi?.ten || evnUser.tenDonVi;
+  const donVi      = typeof tenDonVi === 'string' && tenDonVi.trim() ? tenDonVi.trim() : null;
 
   /* Ưu tiên đối chiếu theo mã NV; không có mã thì lùi về username. */
   let user = maNhanVien
@@ -49,12 +52,13 @@ async function taoHoacDongBo(evnUser) {
   if (!user) {
     const id = await userRepo.insertEvn({
       username, name, role: VAI_TRO_MAC_DINH,
-      ma_nhan_vien: maNhanVien, chuc_danh: chucDanh, phong_ban: phongBan, don_vi: donVi, email,
+      ma_nhan_vien: maNhanVien, chuc_danh: chucDanh, phong_ban: phongBan, don_vi: donVi, don_vi_id: donViId, email,
     });
     user = await userRepo.findById(id);
   } else {
-    await userRepo.syncEvnInfo(user.id, { username, name, chuc_danh: chucDanh, phong_ban: phongBan, don_vi: donVi, email });
+    await userRepo.syncEvnInfo(user.id, { username, name, chuc_danh: chucDanh, phong_ban: phongBan, don_vi: donVi, don_vi_id: donViId, email });
     user.username = username; user.name = name;
+    user.chuc_danh = chucDanh; user.don_vi_id = donViId;
   }
 
   return user;

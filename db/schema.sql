@@ -9,9 +9,11 @@ CREATE TABLE IF NOT EXISTS projects (
   start_date  DATE NULL,
   end_date    DATE NULL,
   budget      DECIMAL(18,2) NOT NULL DEFAULT 0,
+  site        VARCHAR(20)  NOT NULL DEFAULT 'khcn',
   archived    TINYINT(1) NOT NULL DEFAULT 0,
   archived_at DATETIME NULL,
-  created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+  created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_projects_site (site)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS items (
@@ -63,11 +65,13 @@ CREATE TABLE IF NOT EXISTS tinh_hinh_files (
 CREATE TABLE IF NOT EXISTS archives (
   id              INT AUTO_INCREMENT PRIMARY KEY,
   project_id      INT NOT NULL,
+  site            VARCHAR(20) NOT NULL DEFAULT 'khcn',
   project_json    JSON NOT NULL,
   items_json      JSON NOT NULL,
   summary_json    JSON NOT NULL,
   archived_at     DATETIME NOT NULL,
-  archived_note   TEXT
+  archived_note   TEXT,
+  INDEX idx_archives_site (site)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS users (
@@ -83,6 +87,7 @@ CREATE TABLE IF NOT EXISTS users (
   chuc_danh             VARCHAR(150) NULL,
   phong_ban             VARCHAR(150) NULL,
   don_vi                VARCHAR(150) NULL,
+  don_vi_id             INT NULL,
   email                 VARCHAR(150) NULL,
   created_at            DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY idx_users_ma_nhan_vien (ma_nhan_vien)

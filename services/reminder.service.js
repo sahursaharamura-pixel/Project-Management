@@ -8,16 +8,24 @@ const rules         = require('./status.rules');
 const outlookMail   = require('./outlookMail.service');
 const audit         = require('./audit.service');
 const config        = require('../config');
+const siteService   = require('./site.service');
 
-/* Gom dự án cần nhắc theo người phụ trách.
+/* Gom dự án cần nhắc theo người phụ trách, trên mọi site.
    Bỏ qua: dự án chưa có manager_user_id, hoặc dự án không có vấn đề gì. */
 async function gomDuAnCanNhac() {
+  const theoNguoiPhuTrach = new Map();
+  for (const site of Object.keys(siteService.SITES)) {
+    await gomDuAnCuaSite(site, theoNguoiPhuTrach);
+  }
+  return theoNguoiPhuTrach;
+}
+
+async function gomDuAnCuaSite(site, theoNguoiPhuTrach) {
   const [projects, items] = await Promise.all([
-    projectRepo.findAllActive(),
-    itemService.danhSach({}),   // đã tự đồng bộ status theo ngày tháng trước khi đếm
+    projectRepo.findAllActive(site),
+    itemService.danhSach(site, {}),   // đã tự đồng bộ status theo ngày tháng trước khi đếm
   ]);
 
-  const theoNguoiPhuTrach = new Map();
   for (const p of projects) {
     if (!p.manager_user_id) continue;
 
@@ -30,7 +38,6 @@ async function gomDuAnCanNhac() {
     list.push({ project: p, quaHan, chamTienDo });
     theoNguoiPhuTrach.set(p.manager_user_id, list);
   }
-  return theoNguoiPhuTrach;
 }
 
 function taoNoiDungMail(danhSachDuAn) {

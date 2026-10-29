@@ -30,6 +30,42 @@ function handleUnauthorized() {
   openLoginModal();
 }
 
+/* ═══ SITE (đơn vị) ═══
+   Mỗi đơn vị có không gian dữ liệu riêng (Ban KHCN&CĐS, Thác Mơ...), server
+   chọn site theo phiên đăng nhập. siteDangHienThi = site của dữ liệu đang hiện
+   trên trang -> đăng nhập/đăng xuất/chuyển site làm đổi site thì tải lại trang. */
+let siteDangHienThi = null;
+
+function apDungSite(info) {
+  if (!info) return;
+  siteDangHienThi = info.site;
+  const sub = document.querySelector('.topbar-brand-sub');
+  if (sub) sub.textContent = info.ten;
+  document.title = 'Theo dõi Tiến độ Dự án – ' + info.ten;
+  const nhomKhcn = document.getElementById('sidebar-group-khcn');
+  if (nhomKhcn) nhomKhcn.style.display = info.coTrangPhu ? '' : 'none';
+  const dangOTrangPhu = ['khcn', 'sxkd'].some(p => document.getElementById('page-' + p)?.classList.contains('active'));
+  if (!info.coTrangPhu && dangOTrangPhu && typeof showPage === 'function') showPage('dashboard');
+}
+
+function taiLaiNeuDoiSite(siteMoi) {
+  if (siteDangHienThi && siteMoi && siteMoi !== siteDangHienThi) {
+    location.reload();
+    return true;
+  }
+  return false;
+}
+
+/* Chỉ admin: chuyển sang làm việc với dữ liệu của site khác. */
+async function chuyenSite(site) {
+  try {
+    await apiAuth('/me/site', { method:'POST', body:{ site } });
+    location.reload();
+  } catch(e) {
+    toast?.(e.message, true);
+  }
+}
+
 async function initAuth() {
   try {
     currentUser = await apiAuth('/me');
@@ -56,6 +92,11 @@ function updateAuthUI() {
     const nutDoiMatKhau = laTaiKhoanEVN
       ? `<a href="${EVN_PASSWORD_URL}" target="_blank" rel="noopener" onclick="closeUserMenu()">🔑 Đổi mật khẩu</a>`
       : `<button type="button" onclick="closeUserMenu();openPasswordModal()">🔑 Đổi mật khẩu</button>`;
+    const siteInfo = currentUser.site_info;
+    const nutChuyenSite = (siteInfo?.cacSite || [])
+      .filter(s => s.site !== siteInfo.site)
+      .map(s => `<button type="button" onclick="closeUserMenu();chuyenSite('${s.site}')">🔁 Chuyển sang: ${escapeHtml(s.ten)}</button>`)
+      .join('');
 
     el.innerHTML = `
       <div class="user-menu" id="user-menu">
@@ -66,9 +107,11 @@ function updateAuthUI() {
         <div class="user-menu-dropdown" id="user-menu-dropdown">
           <button type="button" onclick="closeUserMenu();openProfile()">🪪 Hồ sơ người dùng</button>
           ${nutDoiMatKhau}
+          ${nutChuyenSite}
           <button type="button" onclick="closeUserMenu();doLogout()">🚪 Đăng xuất</button>
         </div>
       </div>`;
+    apDungSite(siteInfo);
     if (adminLink) adminLink.style.display = currentUser.role==='admin' ? '' : 'none';
     if (dangerZone) dangerZone.style.display = 'none';
     document.body.classList.toggle('no-nhap-lieu', !canNhapLieu());
@@ -83,6 +126,7 @@ function updateAuthUI() {
     if (adminLink) adminLink.style.display = 'none';
     if (dangerZone) dangerZone.style.display = 'none';
     document.body.classList.add('no-nhap-lieu');
+    apiAuth('/site').then(apDungSite).catch(()=>{});
   }
 }
 
@@ -146,6 +190,8 @@ async function doLogin() {
   }
   try {
     currentUser = await apiAuth('/login', { method:'POST', body:{ username, password } });
+    /* Người dùng thuộc đơn vị khác với dữ liệu đang hiện (vd Thác Mơ) -> tải lại. */
+    if (taiLaiNeuDoiSite(currentUser.site_info?.site)) return;
     closeLoginModal();
     updateAuthUI();
     toast?.('Đăng nhập thành công: '+currentUser.name);
@@ -157,6 +203,8 @@ async function doLogin() {
 
 async function doLogout() {
   await apiAuth('/logout', { method:'POST' }).catch(()=>{});
+  const siteKhach = await apiAuth('/site').catch(()=>null);
+  if (taiLaiNeuDoiSite(siteKhach?.site)) return;
   currentUser = null;
   updateAuthUI();
   toast?.('Đã đăng xuất');
@@ -394,7 +442,7 @@ function renderProfile(p) {
     ['Chức vụ',        val(p.chuc_danh)],
     ['Phòng ban',      val(p.phong_ban)],
     ['Email',          val(p.email)],
-    //['Đơn vị',         val(p.don_vi)],
+    ['Đơn vị',         val(p.site_ten) + (p.don_vi_id ? ` <span style="color:#94a3b8;font-weight:500">(mã ${escapeHtml(p.don_vi_id)})</span>` : '')],
     ['Quyền hạn',      CAP_BAC_LABEL[p.cap_bac] || ROLE_LABEL[p.role] || escapeHtml(p.role)],
   ];
 

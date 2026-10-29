@@ -48,7 +48,18 @@ module.exports = () => {
 
   /* ── NGƯỜI DÙNG HIỆN TẠI (gọn, lấy từ session) ── */
   router.get('/me', (req, res) => {
-    res.json(req.session?.user || null);
+    res.json(authService.nguoiDungHienTai(req.session?.user));
+  });
+
+  /* ── SITE ĐANG LÀM VIỆC (cả khách chưa đăng nhập, để hiện đúng tên đơn vị) ── */
+  router.get('/site', (req, res) => {
+    res.json(authService.thongTinSite(req.session?.user));
+  });
+
+  /* ── ADMIN CHUYỂN SITE (Ban KHCN&CĐS <-> Thác Mơ) ── */
+  router.post('/me/site', requireAdmin, (req, res) => {
+    req.session.user = authService.chuyenSite(req.session.user, req.body?.site);
+    res.json(authService.nguoiDungHienTai(req.session.user));
   });
 
   /* ── HỒ SƠ NGƯỜI DÙNG HIỆN TẠI (đầy đủ, đọc mới từ DB) ──

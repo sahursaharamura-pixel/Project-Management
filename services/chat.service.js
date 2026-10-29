@@ -16,6 +16,7 @@ const archiveRepo  = require('../repositories/archive.repo');
 const fileRepo     = require('../repositories/tinhHinhFile.repo');
 const fileService  = require('./tinhHinhFile.service');
 const rules        = require('./status.rules');
+const siteService  = require('./site.service');
 const { badRequest, AppError } = require('../utils/AppError');
 
 const API_URL      = 'https://api.anthropic.com/v1/messages';
@@ -49,13 +50,14 @@ function kiemTraApiKey(apiKey) {
 }
 
 /* ── GOM & TÓM TẮT DỮ LIỆU ────────────────────────────────── */
-async function gomNguCanh() {
+/* Chỉ gom dữ liệu của site đang làm việc -> trợ lý AI không thấy dự án site khác. */
+async function gomNguCanh(site) {
   const [projects, items, tinhHinh, archives, vanBan] = await Promise.all([
-    projectRepo.findAllActive(),
-    itemRepo.findAll(),
-    tinhHinhRepo.findAll(),
-    archiveRepo.findIds(),
-    fileRepo.findAllKemHangMuc(),
+    projectRepo.findAllActive(site),
+    itemRepo.findAll(site),
+    tinhHinhRepo.findAll(site),
+    archiveRepo.findIds(site),
+    fileRepo.findAllKemHangMuc(site),
   ]);
 
   const tomTat = projects.map(p => {
@@ -137,11 +139,11 @@ function dichLoiAPI(err) {
 }
 
 /* ── GỌI CLAUDE API ───────────────────────────────────────── */
-async function hoiClaude(apiKey, cauHoi) {
+async function hoiClaude(apiKey, cauHoi, nguoiDung) {
   if (!cauHoi) throw badRequest('Thiếu câu hỏi');
   kiemTraApiKey(apiKey);
 
-  const nguCanh = await gomNguCanh();
+  const nguCanh = await gomNguCanh(siteService.siteCua(nguoiDung));
   const system  = taoSystemPrompt(nguCanh);
   const messages = [{ role: 'user', content: cauHoi }];
 

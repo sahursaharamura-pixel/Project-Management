@@ -43,13 +43,16 @@
         <span class="sidebar-icon">🗂</span><span>Lịch sử</span>
       </a>
 
-      <div class="sidebar-section">Khoa học công nghệ</div>
-      <a class="sidebar-link" data-page="khcn" href="#">
-        <span class="sidebar-icon">🔬</span><span>Định hướng KHCN</span>
-      </a>
-      <a class="sidebar-link" data-page="sxkd" href="#">
-        <span class="sidebar-icon">🏭</span><span>KH SXKD</span>
-      </a>
+      <!-- Chỉ hiện ở site có trang phụ (Ban KHCN&CĐS), auth.js ẩn ở site khác -->
+      <div id="sidebar-group-khcn">
+        <div class="sidebar-section">Khoa học công nghệ</div>
+        <a class="sidebar-link" data-page="khcn" href="#">
+          <span class="sidebar-icon">🔬</span><span>Định hướng KHCN</span>
+        </a>
+        <a class="sidebar-link" data-page="sxkd" href="#">
+          <span class="sidebar-icon">🏭</span><span>KH SXKD</span>
+        </a>
+      </div>
 
       <div class="sidebar-section">Báo cáo</div>
       <a class="sidebar-link" href="/report.html" target="_blank" rel="noopener">
@@ -286,7 +289,7 @@
       <div id="danger-zone-reset" style="margin-top:32px;padding:18px 20px;background:#fff5f5;border:1.5px dashed #fca5a5;border-radius:12px;display:none;align-items:center;justify-content:space-between;gap:16px">
         <div>
           <div style="font-size:14px;font-weight:700;color:#991b1b">⚠ Xóa toàn bộ dữ liệu</div>
-          <div style="font-size:12px;color:#64748b;margin-top:3px">Xóa tất cả dự án, hạng mục, lịch sử. Không thể hoàn tác.</div>
+          <div style="font-size:12px;color:#64748b;margin-top:3px">Xóa tất cả dự án, hạng mục, lịch sử của đơn vị đang xem (đơn vị khác giữ nguyên). Không thể hoàn tác.</div>
         </div>
         <button class="btn-danger" style="padding:9px 18px;font-size:13px;font-weight:700;white-space:nowrap" onclick="resetAllData()">🗑 Xóa toàn bộ</button>
       </div>

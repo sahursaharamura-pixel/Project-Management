@@ -1,6 +1,6 @@
 /* TẦNG SERVICE — đọc & xuất các bản lưu trữ (snapshot dự án). */
 const archiveRepo = require('../repositories/archive.repo');
-const { notFound } = require('../utils/AppError');
+const siteService = require('./site.service');
 
 /* Cột JSON của MySQL có thể trả về chuỗi hoặc object tùy phiên bản driver
    -> chuẩn hóa về object trong mọi trường hợp. */
@@ -13,8 +13,8 @@ const doiDangBanLuuTru = (a) => ({
   summary: parseJSON(a.summary_json),
 });
 
-async function danhSach() {
-  const rows = await archiveRepo.findAll();
+async function danhSach(nguoiDung) {
+  const rows = await archiveRepo.findAll(siteService.siteCua(nguoiDung));
   return rows.map(doiDangBanLuuTru);
 }
 
@@ -25,9 +25,9 @@ function tenFileXuat(project) {
   return `du-an-${ma}-${ngay}.json`;
 }
 
-async function xuatFile(id) {
+async function xuatFile(nguoiDung, id) {
   const row = await archiveRepo.findById(id);
-  if (!row) throw notFound('Không tìm thấy');
+  siteService.kiemTraThuoc(siteService.siteCua(nguoiDung), row?.site, 'Không tìm thấy');
 
   const banLuuTru = doiDangBanLuuTru(row);
   return { banLuuTru, tenFile: tenFileXuat(banLuuTru.project) };

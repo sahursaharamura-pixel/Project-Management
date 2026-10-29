@@ -54,8 +54,31 @@ async function seedAdminIfEmpty() {
   console.log('✅ Tài khoản admin mặc định: admin / changeme (đổi mật khẩu ngay sau khi đăng nhập)');
 }
 
+/* ── TÁCH DỮ LIỆU THEO SITE (đơn vị) ──
+   Thêm cột nếu chưa có, để server cũ không cần chạy migration tay
+   (db/migrations/004_add_site.sql làm đúng việc này nếu muốn chạy tay).
+   Dữ liệu cũ nhận DEFAULT 'khcn' -> vẫn thuộc Ban KHCN&CĐS như trước. */
+async function themCotNeuChua(bang, cot, dinhNghia) {
+  const [{ c }] = await query(
+    `SELECT COUNT(*) c FROM information_schema.columns
+     WHERE table_schema = DATABASE() AND table_name = ? AND column_name = ?`,
+    [bang, cot]
+  );
+  if (c === 0) {
+    await query(`ALTER TABLE ${bang} ADD COLUMN ${cot} ${dinhNghia}`);
+    console.log(`✅ Đã thêm cột ${bang}.${cot}`);
+  }
+}
+
+async function ensureSiteColumns() {
+  await themCotNeuChua('users',    'don_vi_id', 'INT NULL AFTER don_vi');
+  await themCotNeuChua('projects', 'site', "VARCHAR(20) NOT NULL DEFAULT 'khcn', ADD INDEX idx_projects_site (site)");
+  await themCotNeuChua('archives', 'site', "VARCHAR(20) NOT NULL DEFAULT 'khcn', ADD INDEX idx_archives_site (site)");
+}
+
 async function initDB() {
   await require('../repositories/tinhHinhFile.repo').ensureTable();
+  await ensureSiteColumns();
   await seedIfEmpty();
   await seedAdminIfEmpty();
 }

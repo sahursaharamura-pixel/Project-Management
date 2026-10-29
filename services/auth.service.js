@@ -11,6 +11,7 @@ const config   = require('../config');
 const smartevn = require('./smartevn.service');
 const evnLogin = require('./evnLogin.service');
 const permission = require('./permission.service');
+const siteService = require('./site.service');
 const { AppError, badRequest, unauthorized, notFound } = require('../utils/AppError');
 
 const MAT_KHAU_TOI_THIEU = 6;
@@ -21,7 +22,8 @@ const chuanHoaVaiTro = (role) => (role === 'admin' ? 'admin' : 'user');
 
 /* Thông tin user lưu vào session — cố tình KHÔNG chứa password_hash.
    Có auth_source để frontend biết tài khoản EVN -> ẩn form đổi mật khẩu
-   local, dẫn ra trang SmartEVN thay vào đó. */
+   local, dẫn ra trang SmartEVN thay vào đó.
+   `site` = không gian dữ liệu đang làm việc, suy từ don_vi_id (admin đổi được). */
 const thongTinPhien = (user) => ({
   id:          user.id,
   username:    user.username,
@@ -29,7 +31,28 @@ const thongTinPhien = (user) => ({
   role:        user.role,
   cap_bac:     permission.xacDinhCapBac(user),
   auth_source: user.auth_source || 'local',
+  don_vi_id:   user.don_vi_id ?? null,
+  site:        siteService.siteTheoDonVi(user.don_vi_id),
 });
+
+/* Thông tin site gửi kèm cho frontend (tên hiển thị, có trang phụ không,
+   danh sách site để admin chuyển). Khách chưa đăng nhập -> site mặc định. */
+function thongTinSite(phien) {
+  const site = siteService.siteCua(phien);
+  return {
+    ...siteService.thongTin(site),
+    ...(phien?.role === 'admin' ? { cacSite: siteService.danhSach() } : {}),
+  };
+}
+
+/* /me: phiên hiện tại kèm thông tin site (null nếu chưa đăng nhập). */
+const nguoiDungHienTai = (phien) => (phien ? { ...phien, site_info: thongTinSite(phien) } : null);
+
+/* Admin chuyển site đang làm việc. Trả về phiên mới để route ghi lại session. */
+function chuyenSite(phien, site) {
+  if (!siteService.hopLe(site)) throw badRequest('Site không hợp lệ');
+  return { ...phien, site };
+}
 
 function kiemTraDoDaiMatKhau(matKhau) {
   if (!matKhau || String(matKhau).length < MAT_KHAU_TOI_THIEU) {
@@ -45,7 +68,7 @@ async function hoanTatDangNhap(user, mustChange, ip) {
     entity_id: user.id, entity_name: user.name,
     detail: ip ? `IP: ${ip}` : undefined,
   });
-  return { phien, ketQua: { ...phien, must_change_password: !!mustChange } };
+  return { phien, ketQua: { ...nguoiDungHienTai(phien), must_change_password: !!mustChange } };
 }
 
 /* ── ĐĂNG NHẬP ──────────────────────────────────────────────
@@ -101,6 +124,8 @@ async function layHoSo(nguoiDung) {
     chuc_danh:   user.chuc_danh   || null,
     phong_ban:   user.phong_ban   || null,
     don_vi:      user.don_vi      || null,
+    don_vi_id:   user.don_vi_id   ?? null,
+    site_ten:    siteService.thongTin(siteService.siteCua(nguoiDung)).ten,
     ma_nhan_vien: user.ma_nhan_vien || null,
     email:       user.email       || null,
     auth_source: user.auth_source || 'local',
@@ -201,6 +226,6 @@ async function xoaNguoiDung(nguoiThucHien, id) {
 }
 
 module.exports = {
-  dangNhap, layHoSo, doiMatKhau,
+  dangNhap, layHoSo, doiMatKhau, thongTinSite, nguoiDungHienTai, chuyenSite,
   danhSachNguoiDung, taoNguoiDung, capNhatNguoiDung, xoaNguoiDung,
 };

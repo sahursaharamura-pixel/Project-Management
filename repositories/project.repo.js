@@ -1,30 +1,32 @@
 /* TẦNG REPOSITORY — chỉ chứa SQL thao tác bảng `projects`.
-   Không có nghiệp vụ, không biết gì về HTTP (req/res). */
+   Không có nghiệp vụ, không biết gì về HTTP (req/res).
+   Hàm đọc danh sách luôn nhận `site` -> mỗi đơn vị chỉ thấy dự án của mình. */
 const { query } = require('../db/mysql');
 
-const findAll        = ()   => query('SELECT * FROM projects');
+const findAll        = (site) => query('SELECT * FROM projects WHERE site = ?', [site]);
 /* Kèm tên người phụ trách (manager_name) để giao diện hiển thị. */
-const findAllActive  = ()   => query(
+const findAllActive  = (site) => query(
   `SELECT p.*, u.name AS manager_name FROM projects p
    LEFT JOIN users u ON u.id = p.manager_user_id
-   WHERE p.archived = 0`
+   WHERE p.archived = 0 AND p.site = ?`,
+  [site]
 );
-const findNames      = ()   => query('SELECT id, name FROM projects');
+const findNames      = (site) => query('SELECT id, name FROM projects WHERE site = ?', [site]);
 
 async function findById(id) {
   const rows = await query('SELECT * FROM projects WHERE id = ?', [id]);
   return rows[0] || null;
 }
 
-async function exists(id) {
-  const rows = await query('SELECT id FROM projects WHERE id = ?', [id]);
+async function exists(id, site) {
+  const rows = await query('SELECT id FROM projects WHERE id = ? AND site = ?', [id, site]);
   return rows.length > 0;
 }
 
-async function insert({ name, code, note, start_date, end_date, budget, manager_user_id }) {
+async function insert({ name, code, note, start_date, end_date, budget, manager_user_id, site }) {
   const r = await query(
-    'INSERT INTO projects (name, code, note, start_date, end_date, budget, manager_user_id) VALUES (?,?,?,?,?,?,?)',
-    [name, code, note, start_date, end_date, budget, manager_user_id]
+    'INSERT INTO projects (name, code, note, start_date, end_date, budget, manager_user_id, site) VALUES (?,?,?,?,?,?,?,?)',
+    [name, code, note, start_date, end_date, budget, manager_user_id, site]
   );
   return r.insertId;
 }

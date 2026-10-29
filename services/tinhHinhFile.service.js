@@ -8,6 +8,7 @@ const crypto = require('crypto');
 const fileRepo     = require('../repositories/tinhHinhFile.repo');
 const tinhHinhRepo = require('../repositories/tinhHinh.repo');
 const audit        = require('./audit.service');
+const siteService  = require('./site.service');
 const { badRequest, notFound } = require('../utils/AppError');
 
 const THU_MUC = path.join(__dirname, '..', 'uploads', 'tinh-hinh');
@@ -33,7 +34,14 @@ async function ganFile(logs) {
   }));
 }
 
+/* Chặn xem/xóa văn bản thuộc site khác. */
+async function kiemTraFileCuaSite(nguoiDung, id) {
+  siteService.kiemTraThuoc(siteService.siteCua(nguoiDung), await fileRepo.findSite(id), 'Không tìm thấy file');
+}
+
 async function tai(nguoiDung, tinhHinhId, tenGoc, buffer) {
+  siteService.kiemTraThuoc(siteService.siteCua(nguoiDung), await tinhHinhRepo.findSite(tinhHinhId),
+    'Không tìm thấy cập nhật tình hình');
   const log = await tinhHinhRepo.findById(tinhHinhId);
   if (!log) throw notFound('Không tìm thấy cập nhật tình hình');
 
@@ -59,6 +67,12 @@ async function tai(nguoiDung, tinhHinhId, tenGoc, buffer) {
     entity_id: tinhHinhId, entity_name: tenGoc, detail: 'Đính kèm văn bản',
   });
   return id;
+}
+
+/* Người dùng mở văn bản qua API -> kiểm tra site trước. */
+async function layFileCuaNguoiDung(nguoiDung, id) {
+  await kiemTraFileCuaSite(nguoiDung, id);
+  return layFile(id);
 }
 
 async function layFile(id) {
@@ -113,6 +127,7 @@ async function docChoAI(id) {
 }
 
 async function xoa(nguoiDung, id) {
+  await kiemTraFileCuaSite(nguoiDung, id);
   const f = await fileRepo.findById(id);
   if (!f) throw notFound('Không tìm thấy file');
   await fileRepo.remove(id);
@@ -131,10 +146,7 @@ async function xoaTrenDia(rows) {
   ));
 }
 
-async function xoaToanBoTrenDia() {
-  await fs.promises.rm(THU_MUC, { recursive: true, force: true });
-}
 
 module.exports = {
-  DUNG_LUONG_TOI_DA, ganFile, tai, layFile, docChoAI, xoa, xoaTrenDia, xoaToanBoTrenDia,
+  DUNG_LUONG_TOI_DA, ganFile, tai, layFile, layFileCuaNguoiDung, docChoAI, xoa, xoaTrenDia,
 };

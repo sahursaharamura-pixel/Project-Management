@@ -3,7 +3,7 @@ const { query } = require('../db/mysql');
 
 /* Danh sách hiển thị cho admin: KHÔNG lấy password_hash ra ngoài. */
 const findAllSafe = () =>
-  query('SELECT id, username, name, role, chuc_danh, disabled, created_at, email, don_vi FROM users ORDER BY id');
+  query('SELECT id, username, name, role, chuc_danh, disabled, created_at, email, don_vi, don_vi_id FROM users ORDER BY id');
 
 async function findByUsername(username) {
   const rows = await query('SELECT * FROM users WHERE username = ?', [username]);
@@ -54,22 +54,22 @@ async function findByMaNhanVien(ma) {
 }
 
 /* Tạo mới tài khoản nguồn EVN (không có mật khẩu local). */
-async function insertEvn({ username, name, role, ma_nhan_vien, chuc_danh, phong_ban, don_vi, email }) {
+async function insertEvn({ username, name, role, ma_nhan_vien, chuc_danh, phong_ban, don_vi, don_vi_id, email }) {
   const r = await query(
-    `INSERT INTO users (username, password_hash, name, role, auth_source, ma_nhan_vien, chuc_danh, phong_ban, don_vi, email, must_change_password)
-     VALUES (?, NULL, ?, ?, 'evn', ?, ?, ?, ?, ?, 0)`,
-    [username, name, role, ma_nhan_vien, chuc_danh, phong_ban, don_vi, email]
+    `INSERT INTO users (username, password_hash, name, role, auth_source, ma_nhan_vien, chuc_danh, phong_ban, don_vi, don_vi_id, email, must_change_password)
+     VALUES (?, NULL, ?, ?, 'evn', ?, ?, ?, ?, ?, ?, 0)`,
+    [username, name, role, ma_nhan_vien, chuc_danh, phong_ban, don_vi, don_vi_id, email]
   );
   return r.insertId;
 }
 
 /* Đồng bộ thông tin hiển thị mỗi lần đăng nhập (tên/chức danh/phòng ban/email có thể đổi).
    KHÔNG đụng role và disabled -> tôn trọng chỉnh sửa của admin. */
-const syncEvnInfo = (id, { username, name, chuc_danh, phong_ban, don_vi, email }) =>
+const syncEvnInfo = (id, { username, name, chuc_danh, phong_ban, don_vi, don_vi_id, email }) =>
   query(
-    `UPDATE users SET username = ?, name = ?, chuc_danh = ?, phong_ban = ?, don_vi = ?, email = ?, auth_source = 'evn'
+    `UPDATE users SET username = ?, name = ?, chuc_danh = ?, phong_ban = ?, don_vi = ?, don_vi_id = ?, email = ?, auth_source = 'evn'
      WHERE id = ?`,
-    [username, name, chuc_danh, phong_ban, don_vi, email, id]
+    [username, name, chuc_danh, phong_ban, don_vi, don_vi_id, email, id]
   );
 
 module.exports = {

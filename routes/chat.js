@@ -10,7 +10,7 @@ const { requireAuth } = require('../middleware/auth');
 module.exports = (apiKey) => {
 
   router.post('/chat', requireAuth, ah(async (req, res) => {
-    const reply = await chatService.hoiClaude(apiKey, req.body.message);
+    const reply = await chatService.hoiClaude(apiKey, req.body.message, req.session.user);
     res.json({ reply });
   }));
 

@@ -23,15 +23,31 @@ const findByTinhHinhIds = (ids) =>
     ? query('SELECT * FROM tinh_hinh_files WHERE tinh_hinh_id IN (?) ORDER BY id', [ids])
     : Promise.resolve([]);
 
-/* Toàn bộ văn bản kèm hạng mục/dự án — cho trợ lý AI biết có những file nào. */
-const findAllKemHangMuc = () =>
+/* Toàn bộ văn bản (của 1 site) kèm hạng mục/dự án — cho trợ lý AI biết có những file nào. */
+const findAllKemHangMuc = (site) =>
   query(
     `SELECT f.id, f.ten_goc, f.created_at, th.item_id, i.project_id
        FROM tinh_hinh_files f
        INNER JOIN tinh_hinh th ON f.tinh_hinh_id = th.id
        INNER JOIN items i      ON th.item_id = i.id
-     ORDER BY f.created_at DESC`
+       INNER JOIN projects p   ON p.id = i.project_id
+     WHERE p.site = ?
+     ORDER BY f.created_at DESC`,
+    [site]
   );
+
+/* Site của 1 văn bản — để chặn xem/xóa chéo site. */
+async function findSite(id) {
+  const rows = await query(
+    `SELECT p.site FROM tinh_hinh_files f
+       INNER JOIN tinh_hinh th ON f.tinh_hinh_id = th.id
+       INNER JOIN items i      ON th.item_id = i.id
+       INNER JOIN projects p   ON p.id = i.project_id
+     WHERE f.id = ?`,
+    [id]
+  );
+  return rows[0]?.site || null;
+}
 
 async function findById(id) {
   const rows = await query('SELECT * FROM tinh_hinh_files WHERE id = ?', [id]);
@@ -60,6 +76,17 @@ const findTenLuuByProject = (projectId) =>
     [projectId]
   );
 
+/* Toàn bộ file của 1 site — dùng khi reset dữ liệu của site đó. */
+const findTenLuuBySite = (site) =>
+  query(
+    `SELECT f.ten_luu FROM tinh_hinh_files f
+       INNER JOIN tinh_hinh th ON f.tinh_hinh_id = th.id
+       INNER JOIN items i      ON th.item_id = i.id
+       INNER JOIN projects p   ON p.id = i.project_id
+     WHERE p.site = ?`,
+    [site]
+  );
+
 async function insert({ tinhHinhId, tenGoc, tenLuu, mime, kichThuoc }) {
   const r = await query(
     'INSERT INTO tinh_hinh_files (tinh_hinh_id, ten_goc, ten_luu, mime, kich_thuoc) VALUES (?,?,?,?,?)',
@@ -71,7 +98,7 @@ async function insert({ tinhHinhId, tenGoc, tenLuu, mime, kichThuoc }) {
 const remove = (id) => query('DELETE FROM tinh_hinh_files WHERE id = ?', [id]);
 
 module.exports = {
-  ensureTable, findByTinhHinhIds, findAllKemHangMuc, findById,
-  findTenLuuByTinhHinh, findTenLuuByItem, findTenLuuByProject,
+  ensureTable, findByTinhHinhIds, findAllKemHangMuc, findById, findSite,
+  findTenLuuByTinhHinh, findTenLuuByItem, findTenLuuByProject, findTenLuuBySite,
   insert, remove,
 };

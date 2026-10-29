@@ -10,6 +10,7 @@ const adminService   = require('../services/admin.service');
 const khcnSxkdService = require('../services/khcnSxkd.service');
 const reminderService = require('../services/reminder.service');
 const fileService    = require('../services/tinhHinhFile.service');
+const siteService    = require('../services/site.service');
 const contentDisposition = require('content-disposition');
 const { requireAuth, requireAdmin, requireNhapLieu } = require('../middleware/auth');
 const ah = require('../middleware/asyncHandler');
@@ -21,14 +22,14 @@ module.exports = () => {
 
   /* ── DASHBOARD ── */
   router.get('/stats', ah(async (req, res) => {
-    res.json(await statsService.tongHop());
+    res.json(await statsService.tongHop(req.session?.user));
   }));
 
   /* ── DỰ ÁN ──
      Danh sách/chi tiết dự án chỉ dành cho người đã đăng nhập; khách vãng lai
      chỉ được xem /stats (dashboard tổng quan), không xem được chi tiết dự án. */
   router.get('/projects', requireAuth, ah(async (req, res) => {
-    res.json(await projectService.danhSach());
+    res.json(await projectService.danhSach(req.session.user));
   }));
 
   router.post('/projects', requireNhapLieu, ah(async (req, res) => {
@@ -46,7 +47,7 @@ module.exports = () => {
   }));
 
   router.get('/projects/:id/detail', requireAuth, ah(async (req, res) => {
-    res.json(await projectService.chiTiet(id(req)));
+    res.json(await projectService.chiTiet(req.session.user, id(req)));
   }));
 
   /* ── LƯU TRỮ / KHÔI PHỤC DỰ ÁN ── */
@@ -62,7 +63,7 @@ module.exports = () => {
 
   /* ── HẠNG MỤC ── */
   router.get('/items', requireAuth, ah(async (req, res) => {
-    res.json(await itemService.danhSach(req.query));
+    res.json(await itemService.danhSach(siteService.siteCua(req.session.user), req.query));
   }));
 
   router.post('/items', requireNhapLieu, ah(async (req, res) => {
@@ -81,7 +82,7 @@ module.exports = () => {
 
   /* ── TÌNH HÌNH TRIỂN KHAI ── */
   router.get('/items/:id/tinh-hinh', requireAuth, ah(async (req, res) => {
-    res.json(await itemService.danhSachTinhHinh(id(req)));
+    res.json(await itemService.danhSachTinhHinh(req.session.user, id(req)));
   }));
 
   router.post('/items/:id/tinh-hinh', requireNhapLieu, ah(async (req, res) => {
@@ -106,7 +107,7 @@ module.exports = () => {
 
   /* PDF mở xem ngay trên trình duyệt, Word thì tải về */
   router.get('/tinh-hinh-files/:id', requireAuth, ah(async (req, res) => {
-    const f = await fileService.layFile(id(req));
+    const f = await fileService.layFileCuaNguoiDung(req.session.user, id(req));
     res.setHeader('Content-Type', f.mime);
     res.setHeader('Content-Disposition', contentDisposition(f.ten_goc, {
       type: f.mime === 'application/pdf' ? 'inline' : 'attachment',
@@ -121,17 +122,17 @@ module.exports = () => {
 
   /* ── BẢN LƯU TRỮ ── */
   router.get('/archives', requireAuth, ah(async (req, res) => {
-    res.json(await archiveService.danhSach());
+    res.json(await archiveService.danhSach(req.session.user));
   }));
 
   router.get('/archives/:id/export', requireAuth, ah(async (req, res) => {
-    const { banLuuTru, tenFile } = await archiveService.xuatFile(id(req));
+    const { banLuuTru, tenFile } = await archiveService.xuatFile(req.session.user, id(req));
     res.setHeader('Content-Disposition', `attachment; filename="${tenFile}"`);
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     res.send(JSON.stringify(banLuuTru, null, 2));
   }));
 
-  /* ── RESET TOÀN BỘ DỮ LIỆU (chỉ admin) ── */
+  /* ── RESET TOÀN BỘ DỮ LIỆU CỦA SITE ĐANG LÀM VIỆC (chỉ admin) ── */
   router.post('/reset', requireAdmin, ah(async (req, res) => {
     await adminService.resetToanBoDuLieu(req.session.user);
     res.json({ ok: true });
@@ -141,20 +142,20 @@ module.exports = () => {
      Lưu ở file JSON riêng (data/khcn-data.json, data/sxkd-data.json), không dùng MySQL —
      2 trang này phục vụ riêng nhu cầu Ban KHCN&CĐS, không áp dụng chung toàn hệ thống. */
   router.get('/khcn-data', ah(async (req, res) => {
-    res.json(await khcnSxkdService.getKhcn());
+    res.json(await khcnSxkdService.getKhcn(req.session?.user));
   }));
 
   router.put('/khcn-data', requireNhapLieu, ah(async (req, res) => {
-    await khcnSxkdService.saveKhcn(req.body);
+    await khcnSxkdService.saveKhcn(req.session.user, req.body);
     res.json({ ok: true });
   }));
 
   router.get('/sxkd-data', ah(async (req, res) => {
-    res.json(await khcnSxkdService.getSxkd());
+    res.json(await khcnSxkdService.getSxkd(req.session?.user));
   }));
 
   router.put('/sxkd-data', requireNhapLieu, ah(async (req, res) => {
-    await khcnSxkdService.saveSxkd(req.body);
+    await khcnSxkdService.saveSxkd(req.session.user, req.body);
     res.json({ ok: true });
   }));
 

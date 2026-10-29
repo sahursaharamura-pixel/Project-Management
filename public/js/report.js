@@ -375,7 +375,7 @@ async function build() {
       <img src="/logo.png" alt="">
       <div class="t">
         <h1>${esc(title)}</h1>
-        <div class="sub">Ban KHCN &amp; CĐS — Hệ thống quản lý dự án</div>
+        <div class="sub">${esc(SITE_TEN)} — Hệ thống quản lý dự án</div>
       </div>
       <div class="when">
         Lập ngày ${fmtDate(new Date())}<br>
@@ -422,8 +422,16 @@ async function build() {
 }
 
 /* ═══════════ KHỞI ĐỘNG ═══════════ */
+let SITE_TEN = 'Ban KHCN&CĐS';   // tên đơn vị trên tiêu đề báo cáo, lấy lại từ /api/site
+
 (async function init() {
   const doc = $('doc');
+
+  /* Báo cáo theo site của người đang đăng nhập (Ban KHCN&CĐS / Thác Mơ...). */
+  try {
+    const s = await (await fetch('/api/site')).json();
+    if (s?.ten) SITE_TEN = s.ten;
+  } catch { /* giữ tên mặc định */ }
 
   try {
     const r = await fetch('/api/stats');

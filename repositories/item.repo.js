@@ -1,12 +1,23 @@
 /* TẦNG REPOSITORY — chỉ chứa SQL thao tác bảng `items`. */
 const { query } = require('../db/mysql');
 
-const findAll          = ()   => query('SELECT * FROM items');
+/* Hạng mục của mọi dự án thuộc 1 site. */
+const findAll          = (site) => query(
+  'SELECT i.* FROM items i INNER JOIN projects p ON p.id = i.project_id WHERE p.site = ?', [site]
+);
 const findByProject    = (projectId) => query('SELECT * FROM items WHERE project_id = ?', [projectId]);
 
 async function findById(id) {
   const rows = await query('SELECT * FROM items WHERE id = ?', [id]);
   return rows[0] || null;
+}
+
+/* Site của hạng mục (qua dự án chứa nó) — để chặn thao tác chéo site. */
+async function findSite(id) {
+  const rows = await query(
+    'SELECT p.site FROM items i INNER JOIN projects p ON p.id = i.project_id WHERE i.id = ?', [id]
+  );
+  return rows[0]?.site || null;
 }
 
 const COLUMNS = `project_id,name,group_name,contractor,assignee,start_date,end_date,
@@ -44,6 +55,6 @@ const updateStatus = (id, status) =>
 const touch = (id) => query('UPDATE items SET updated_at = NOW() WHERE id = ?', [id]);
 
 module.exports = {
-  findAll, findByProject, findById,
+  findAll, findByProject, findById, findSite,
   insert, update, remove, updateStatus, touch,
 };

@@ -8,9 +8,17 @@ const fileService  = require('./tinhHinhFile.service');
 const itemService  = require('./item.service');
 const audit        = require('./audit.service');
 const rules        = require('./status.rules');
-const { badRequest, notFound } = require('../utils/AppError');
+const siteService  = require('./site.service');
+const { badRequest } = require('../utils/AppError');
 
 const SO_TINH_HINH_GAN_DAY = 20;
+
+/* Lấy dự án, đồng thời chặn nếu dự án thuộc site khác site người dùng đang làm việc. */
+async function layDuAnCuaSite(nguoiDung, id) {
+  const project = await projectRepo.findById(id);
+  siteService.kiemTraThuoc(siteService.siteCua(nguoiDung), project?.site, 'Không tìm thấy dự án');
+  return project;
+}
 
 /* Chuẩn hóa dữ liệu form dự án về đúng kiểu trước khi xuống DB.
    `managerUserId` là giá trị mặc định cho manager_user_id nếu form không
@@ -28,10 +36,11 @@ function chuanHoaDuAn(f, managerUserId) {
 }
 
 /* ── DANH SÁCH DỰ ÁN (kèm tiến độ) ────────────────────────── */
-async function danhSach() {
+async function danhSach(nguoiDung) {
+  const site = siteService.siteCua(nguoiDung);
   const [items, projects] = await Promise.all([
-    itemRepo.findAll(),
-    projectRepo.findAllActive(),
+    itemRepo.findAll(site),
+    projectRepo.findAllActive(site),
   ]);
 
   return projects.map(p => {
@@ -50,7 +59,10 @@ async function tao(nguoiDung, f) {
   if (!f.name) throw badRequest('Tên dự án không được trống');
 
   /* Người phụ trách mặc định là người tạo dự án, trừ khi form chỉ định người khác. */
-  const id = await projectRepo.insert(chuanHoaDuAn(f, nguoiDung.id));
+  const id = await projectRepo.insert({
+    ...chuanHoaDuAn(f, nguoiDung.id),
+    site: siteService.siteCua(nguoiDung),
+  });
   await audit.ghiNhatKy({
     user: nguoiDung, action: 'create', entity: 'project',
     entity_id: id, entity_name: f.name,
@@ -62,8 +74,8 @@ async function capNhat(nguoiDung, id, f) {
   if (!f.name) throw badRequest('Tên dự án không được trống');
 
   /* Form sửa không gửi manager_user_id -> giữ nguyên người phụ trách cũ. */
-  const hienTai = await projectRepo.findById(id);
-  await projectRepo.update(id, chuanHoaDuAn(f, hienTai?.manager_user_id ?? null));
+  const hienTai = await layDuAnCuaSite(nguoiDung, id);
+  await projectRepo.update(id, chuanHoaDuAn(f, hienTai.manager_user_id ?? null));
   await audit.ghiNhatKy({
     user: nguoiDung, action: 'update', entity: 'project',
     entity_id: id, entity_name: f.name,
@@ -71,7 +83,7 @@ async function capNhat(nguoiDung, id, f) {
 }
 
 async function xoa(nguoiDung, id) {
-  const project = await projectRepo.findById(id);
+  const project = await layDuAnCuaSite(nguoiDung, id);
   /* Hạng mục, tình hình và văn bản đính kèm tự xóa theo (ON DELETE CASCADE
      trong schema); file trên đĩa thì phải lấy danh sách trước rồi dọn tay. */
   const files = await fileRepo.findTenLuuByProject(id);
@@ -84,9 +96,8 @@ async function xoa(nguoiDung, id) {
 }
 
 /* ── CHI TIẾT 1 DỰ ÁN ─────────────────────────────────────── */
-async function chiTiet(id) {
-  const project = await projectRepo.findById(id);
-  if (!project) throw notFound('Không tìm thấy dự án');
+async function chiTiet(nguoiDung, id) {
+  const project = await layDuAnCuaSite(nguoiDung, id);
 
   let items = await itemService.dongBoTrangThai(await itemRepo.findByProject(id));
   items = items.sort((a, b) => new Date(a.start_date || 0) - new Date(b.start_date || 0));
@@ -122,8 +133,7 @@ async function chiTiet(id) {
    Chụp lại toàn bộ dự án + hạng mục + tình hình thành snapshot JSON,
    rồi đánh dấu dự án là đã lưu trữ. Snapshot chỉ để đọc, không chuẩn hóa. */
 async function luuTru(nguoiDung, id, ghiChu) {
-  const project = await projectRepo.findById(id);
-  if (!project) throw notFound('Không tìm thấy dự án');
+  const project = await layDuAnCuaSite(nguoiDung, id);
 
   const now  = rules.nowForMySQL();
   const note = ghiChu || '';
@@ -149,6 +159,7 @@ async function luuTru(nguoiDung, id, ghiChu) {
 
   const archiveId = await archiveRepo.insert({
     project_id:    id,
+    site:          project.site,
     project_json:  JSON.stringify({ ...project, archived_at: now, archived_note: note }),
     items_json:    JSON.stringify(itemsWithTH),
     summary_json:  JSON.stringify(summary),
@@ -166,7 +177,7 @@ async function luuTru(nguoiDung, id, ghiChu) {
 }
 
 async function khoiPhuc(nguoiDung, id) {
-  const project = await projectRepo.findById(id);
+  const project = await layDuAnCuaSite(nguoiDung, id);
   await projectRepo.markUnarchived(id);
   await audit.ghiNhatKy({
     user: nguoiDung, action: 'unarchive', entity: 'project',

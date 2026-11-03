@@ -88,7 +88,7 @@ function showPage(name){
   }
   else if(name==='nhap-lieu'){
     clearInterval(dashTimer);
-    loadProjects().then(()=>{renderProjManageList();loadItems();});
+    loadProjects().then(()=>{renderProjManageList();loadItems();}).catch(()=>{});
   }
   else if(name==='khcn'){
     clearInterval(dashTimer);
@@ -116,9 +116,17 @@ function showPage(name){
 /* ══════════════════════════════════════
    DASHBOARD
 ══════════════════════════════════════ */
+/* Chỉ hẹn giờ tự làm mới khi tải được (chưa đăng nhập -> 401 -> không hẹn giờ,
+   tránh cứ 60 giây lại bật form đăng nhập). */
 function startDashboard(){
-  loadDashboard();
-  startRefreshTimer();
+  loadDashboard().then(startRefreshTimer).catch(()=>{});
+}
+
+/* Gọi từ doLogin(): khách chưa đăng nhập chưa tải được dữ liệu gì -> tải lại trang đang xem. */
+function taiLaiSauDangNhap(){
+  if(routeFromURL()) return;
+  const dangXem=document.querySelector('.page.active')?.id?.replace('page-','');
+  showPage(dangXem && dangXem!=='du-an' ? dangXem : 'dashboard');
 }
 
 function startRefreshTimer(){
@@ -1328,7 +1336,7 @@ async function resetAllData(){
 /* ═══ BOOT ═══ */
 startClock();
 if(!routeFromURL()){
-  loadProjects().then(()=>{ startDashboard(); });
+  loadProjects().then(()=>{ startDashboard(); }).catch(()=>{});
 }
 
 /* ══════════════════════════════════════════════

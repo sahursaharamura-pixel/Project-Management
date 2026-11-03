@@ -9,40 +9,9 @@ const GROUPS = [
   { id:'g4', cat:'4', icon:'📊', color:'cat-4', title:'CHI PHÍ QUẢN LÝ KHCN' },
 ];
 
-let DATA = [
-  // ── NHÓM 1 ──
-  {id:'i1',  gid:'g1', pid:null, stt:'1',     lvl:0, title:'Nhiệm vụ KHCN', unit:'', budget:null, source:'', status:'new', note:''},
-  {id:'i2',  gid:'g1', pid:'i1', stt:'1.1',   lvl:1, title:'Nhiệm vụ KHCN cấp EVNGENCO2', unit:'—', budget:null, source:'tbd', status:'new', note:''},
-  {id:'i3',  gid:'g1', pid:'i1', stt:'1.2',   lvl:1, title:'Nhiệm vụ KHCN cấp cơ sở', unit:'Đơn vị', budget:null, source:'tbd', status:'new', note:''},
-  {id:'i4',  gid:'g1', pid:'i3', stt:'1.2.1', lvl:2, title:'Nghiên cứu thiết kế lắp đặt hệ thống thu thập và giám sát áp suất khí SF6 máy cắt 110kV tại NMTĐQT', unit:'Cty Thuỷ điện Quảng Trị', budget:300, source:'khcn', status:'approved', note:'HĐQT thông qua chi phí để cơ sở thực hiện. Thanh toán theo giá trị thực tế.'},
-  {id:'i5',  gid:'g1', pid:'i3', stt:'1.2.2', lvl:2, title:'Nghiên cứu xây dựng hệ thống camera thông minh dựa trên hạ tầng camera hiện hữu và ứng dụng trong công tác quản lý, vận hành nhà máy Thuỷ điện An Khê – Ka Nak', unit:'Cty Thuỷ điện An Khê – Ka Nak', budget:1500, source:'khcn', status:'approved', note:''},
-  {id:'i6',  gid:'g1', pid:'i3', stt:'1.2.3', lvl:2, title:'Theo dõi tín hiệu âm thanh bất thường từ lò hơi và đường ống hơi để phát hiện rò rỉ hoặc đập hơi', unit:'Cty CP Nhiệt điện Hải Phòng', budget:null, source:'mixed', status:'new', note:''},
-  {id:'i7',  gid:'g1', pid:'i3', stt:'1.2.4', lvl:2, title:'Nghiên cứu ứng dụng AI vào công tác quản lý đấu thầu, quản lý tiến độ thực hiện dự án', unit:'Cty CP Nhiệt điện Phả Lại', budget:null, source:'sxkd', status:'new', note:''},
-  {id:'i8',  gid:'g1', pid:'i3', stt:'1.2.5', lvl:2, title:'Ứng dụng AI trong giám sát hệ thống đo đếm điện năng và giảm thiểu Qdu trong sản xuất điện tại Cty CPNĐ Phả Lại', unit:'Cty CP Nhiệt điện Phả Lại', budget:null, source:'sxkd', status:'transfer', note:'Nhiệm vụ chuyển tiếp'},
-  {id:'i9',  gid:'g1', pid:'i3', stt:'1.2.6', lvl:2, title:'Nghiên cứu, ứng dụng giải pháp tìm kiếm và xử lý hiện tượng rò rỉ bình ngưng trong chu trình nhiệt tại DC2-PXVH', unit:'Cty CP Nhiệt điện Phả Lại', budget:null, source:'sxkd', status:'new', note:''},
-  {id:'i10', gid:'g1', pid:'i3', stt:'1.2.7', lvl:2, title:'Nghiên cứu, phân tích và xử lý tình trạng hư hỏng vòng bi, cổ trục, gối trục của quạt khói dây chuyền 2 – Cty CP Nhiệt điện Phả Lại', unit:'Cty CP Nhiệt điện Phả Lại', budget:null, source:'sxkd', status:'new', note:''},
-  {id:'i11', gid:'g1', pid:'i3', stt:'1.2.8', lvl:2, title:'Phần mềm tích hợp trí tuệ nhân tạo phục vụ giám sát, cảnh báo và dự báo mưa, thời tiết, lưu lượng khu vực hồ thuỷ điện A Vương', unit:'Cty CP Thuỷ điện A Vương', budget:null, source:'sxkd', status:'new', note:''},
-  {id:'i12', gid:'g1', pid:'i3', stt:'1.2.9', lvl:2, title:'Ứng dụng AI dự báo công suất phát Nhà máy Điện mặt trời Thác Mơ', unit:'Cty CP Thuỷ điện Thác Mơ', budget:null, source:'mixed', status:'transfer', note:'Nhiệm vụ chuyển tiếp'},
-  // ── NHÓM 2 ──
-  {id:'i13', gid:'g2', pid:null, stt:'2',     lvl:0, title:'Dịch vụ KHCN', unit:'EVNGENCO2/Đơn vị', budget:null, source:'', status:'new', note:''},
-  {id:'i14', gid:'g2', pid:'i13',stt:'2.1',   lvl:1, title:'Xây dựng và triển khai hệ thống AI hỗ trợ biên soạn văn bản, tài liệu quản lý tại EVNGENCO2', unit:'Ban KHCN&CĐS', budget:1000, source:'khcn', status:'approved', note:'HĐQT thông qua chi phí để Đơn vị có cơ sở thực hiện theo các quy định hiện hành.'},
-  {id:'i15', gid:'g2', pid:'i13',stt:'2.2',   lvl:1, title:'Hệ thống AI Radar tri thức công nghệ', unit:'Ban KHCN&CĐS', budget:500, source:'khcn', status:'approved', note:''},
-  {id:'i16', gid:'g2', pid:'i13',stt:'2.3',   lvl:1, title:'Hội nghị/Hội thảo về KHCN – ĐMST – CĐS trong EVN/EVNGENCO2', unit:'Ban KHCN&CĐS', budget:1000, source:'khcn', status:'approved', note:'Thanh toán theo giá trị thực tế.'},
-  {id:'i17', gid:'g2', pid:'i13',stt:'2.4',   lvl:1, title:'Bồi dưỡng/tập huấn về triển khai xây dựng các ứng dụng KHCN, công nghệ số...', unit:'Ban KHCN&CĐS', budget:500, source:'khcn', status:'approved', note:''},
-  {id:'i18', gid:'g2', pid:'i13',stt:'2.5',   lvl:1, title:'Ứng dụng chạy trên IOS và Android phần mềm phục vụ SXKD – Giai đoạn 2', unit:'Cty CP Thuỷ điện Thác Mơ', budget:null, source:'mixed', status:'transfer', note:'Hạng mục chuyển tiếp từ năm 2025 sang năm 2026.'},
-  {id:'i19', gid:'g2', pid:'i13',stt:'2.6',   lvl:1, title:'Giám sát tấm pin và nhiệt độ mối nối dao cách ly đường dây 22kV bằng UAV tích hợp AI', unit:'Cty CP Thuỷ điện Thác Mơ', budget:null, source:'mixed', status:'new', note:'Đơn vị triển khai đảm bảo tuân thủ các quy định hiện hành.'},
-  // ── NHÓM 3 ──
-  {id:'i20', gid:'g3', pid:null, stt:'3',     lvl:0, title:'Hoạt động sáng kiến', unit:'EVNGENCO2/Đơn vị', budget:null, source:'', status:'new', note:''},
-  {id:'i21', gid:'g3', pid:'i20',stt:'3.1',   lvl:1, title:'Cấp EVNGENCO2', unit:'Ban KHCN&CĐS / Ban TCKT', budget:3182, source:'khcn', status:'approved', note:'HĐQT thông qua chi phí để cơ sở thực hiện'},
-  {id:'i22', gid:'g3', pid:'i21',stt:'3.1.1', lvl:2, title:'Dự kiến số sáng kiến cấp EVNGENCO2: 30 sáng kiến', unit:'Ban KHCN&CĐS / Ban TCKT', budget:3182, source:'khcn', status:'approved', note:'Thanh toán theo giá trị thực tế'},
-  {id:'i23', gid:'g3', pid:'i20',stt:'3.2',   lvl:1, title:'Cấp cơ sở tại Cơ quan Tổng công ty và các đơn vị hạch toán phụ thuộc', unit:'Ban KHCN&CĐS / Ban TCKT', budget:1642, source:'khcn', status:'approved', note:'HĐQT thông qua chi phí để cơ sở thực hiện'},
-  {id:'i24', gid:'g3', pid:'i23',stt:'3.2.1', lvl:2, title:'Dự kiến số sáng kiến cấp cơ sở tại Cơ quan EVNGENCO2 và các Đơn vị hạch toán phụ thuộc EVNGENCO2: 60 sáng kiến', unit:'Ban KHCN&CĐS / Ban TCKT', budget:1642, source:'khcn', status:'approved', note:'Thanh toán theo giá trị thực tế'},
-  {id:'i25', gid:'g3', pid:'i20',stt:'3.3',   lvl:1, title:'Cấp cơ sở tại các Đơn vị Cổ phần và Công ty TNHH MTV', unit:'Đơn vị', budget:null, source:'mixed', status:'new', note:''},
-  // ── NHÓM 4 ──
-  {id:'i26', gid:'g4', pid:null, stt:'4',     lvl:0, title:'Chi phí dự kiến cho công tác quản lý hoạt động KHCN', unit:'—', budget:null, source:'', status:'new', note:''},
-  {id:'i27', gid:'g4', pid:'i26',stt:'4.1',   lvl:1, title:'Chi phí dự kiến cho công tác quản lý hoạt động KHCN tại EVNGENCO2 và các Đơn vị HTPT năm 2026', unit:'Ban KHCN&CĐS / Ban TCKT', budget:500, source:'khcn', status:'approved', note:'HĐQT thông qua chi phí để cơ sở thực hiện'},
-  {id:'i28', gid:'g4', pid:'i26',stt:'4.2',   lvl:1, title:'Chi phí dự kiến cho công tác quản lý hoạt động KHCN tại Đơn vị Cổ phần/Công ty TNHH MTV năm 2026', unit:'Đơn vị', budget:null, source:'mixed', status:'new', note:''},
-];
+/* Dữ liệu chỉ tải từ server (cần đăng nhập) — không chép sẵn trong file JS,
+   vì file tĩnh này ai cũng tải được kể cả khi chưa đăng nhập. */
+let DATA = [];
 
 let expandedRows = new Set();
 let currentFilter = '';
@@ -51,23 +20,31 @@ let editTarget = null;
 
 // ═══════════════════════════════════════
 // LƯU TRỮ TRÊN SERVER (file data/khcn-data.json — không dùng MySQL)
-// GROUPS/DATA ở trên là dữ liệu mặc định (dùng khi chưa gọi được API, ví dụ mất mạng).
-// Khi tải trang thành công, nội dung sẽ được nạp đè từ server để mọi người luôn thấy
-// đúng bản mới nhất; sau mỗi lần thêm/sửa/xóa sẽ lưu ngược lại lên server.
+// Nội dung tải từ server mỗi lần mở trang; sau mỗi lần thêm/sửa/xóa sẽ lưu ngược lại.
+// Chưa tải được (chưa đăng nhập, mất mạng...) thì KHÔNG cho lưu, để không ghi đè
+// file trên server bằng danh sách rỗng.
 // ═══════════════════════════════════════
+let khcnDaTai = false;
+
 async function loadKhcnData() {
   try {
     const r = await fetch('/api/khcn-data');
     const data = await r.json();
+    if (r.status === 401 && typeof handleUnauthorized === 'function') handleUnauthorized();
     if (!r.ok) throw new Error(data.error || 'Lỗi tải dữ liệu KHCN');
     if (Array.isArray(data.groups) && data.groups.length) { GROUPS.length = 0; GROUPS.push(...data.groups); }
     if (Array.isArray(data.items)) { DATA.length = 0; DATA.push(...data.items); }
+    khcnDaTai = true;
   } catch (e) {
-    console.warn('Không tải được dữ liệu KHCN từ server, đang dùng dữ liệu mặc định trong trình duyệt:', e.message);
+    console.warn('Không tải được dữ liệu KHCN từ server:', e.message);
   }
 }
 
 async function saveKhcnData() {
+  if (!khcnDaTai) {
+    showToast('⚠️ Chưa tải được dữ liệu từ server nên không lưu thay đổi. Hãy đăng nhập / tải lại trang.', 'error');
+    return;
+  }
   try {
     const r = await fetch('/api/khcn-data', {
       method: 'PUT',

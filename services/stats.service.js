@@ -10,7 +10,7 @@ const siteService  = require('./site.service');
 
 const SO_HANG_MUC_GAN_DAY = 10;
 
-/* nguoiDung = null với khách chưa đăng nhập -> site mặc định. */
+/* Chỉ gọi khi đã đăng nhập (route /stats có requireAuth). */
 async function tongHop(nguoiDung) {
   const site = siteService.siteCua(nguoiDung);
   const projects = await projectRepo.findAll(site);

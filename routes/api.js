@@ -20,14 +20,14 @@ const id = req => parseInt(req.params.id);
 
 module.exports = () => {
 
-  /* ── DASHBOARD ── */
-  router.get('/stats', ah(async (req, res) => {
-    res.json(await statsService.tongHop(req.session?.user));
+  /* ── DASHBOARD ──
+     Mọi dữ liệu nghiệp vụ (kể cả dashboard tổng quan) chỉ dành cho người đã
+     đăng nhập; khách chưa đăng nhập chỉ thấy form đăng nhập. */
+  router.get('/stats', requireAuth, ah(async (req, res) => {
+    res.json(await statsService.tongHop(req.session.user));
   }));
 
-  /* ── DỰ ÁN ──
-     Danh sách/chi tiết dự án chỉ dành cho người đã đăng nhập; khách vãng lai
-     chỉ được xem /stats (dashboard tổng quan), không xem được chi tiết dự án. */
+  /* ── DỰ ÁN ── */
   router.get('/projects', requireAuth, ah(async (req, res) => {
     res.json(await projectService.danhSach(req.session.user));
   }));
@@ -141,8 +141,8 @@ module.exports = () => {
   /* ── DỮ LIỆU TRANG ĐỊNH HƯỚNG KHCN / KH SXKD ──
      Lưu ở file JSON riêng (data/khcn-data.json, data/sxkd-data.json), không dùng MySQL —
      2 trang này phục vụ riêng nhu cầu Ban KHCN&CĐS, không áp dụng chung toàn hệ thống. */
-  router.get('/khcn-data', ah(async (req, res) => {
-    res.json(await khcnSxkdService.getKhcn(req.session?.user));
+  router.get('/khcn-data', requireAuth, ah(async (req, res) => {
+    res.json(await khcnSxkdService.getKhcn(req.session.user));
   }));
 
   router.put('/khcn-data', requireNhapLieu, ah(async (req, res) => {
@@ -150,8 +150,8 @@ module.exports = () => {
     res.json({ ok: true });
   }));
 
-  router.get('/sxkd-data', ah(async (req, res) => {
-    res.json(await khcnSxkdService.getSxkd(req.session?.user));
+  router.get('/sxkd-data', requireAuth, ah(async (req, res) => {
+    res.json(await khcnSxkdService.getSxkd(req.session.user));
   }));
 
   router.put('/sxkd-data', requireNhapLieu, ah(async (req, res) => {

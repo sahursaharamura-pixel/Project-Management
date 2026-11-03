@@ -194,6 +194,7 @@ async function doLogin() {
     if (taiLaiNeuDoiSite(currentUser.site_info?.site)) return;
     closeLoginModal();
     updateAuthUI();
+    if (typeof taiLaiSauDangNhap === 'function') taiLaiSauDangNhap();
     toast?.('Đăng nhập thành công: '+currentUser.name);
   } catch(e) {
     errEl.textContent = e.message;
@@ -201,14 +202,11 @@ async function doLogin() {
   }
 }
 
+/* Đăng xuất xong tải lại trang về trang chủ: xóa hết dữ liệu người dùng trước
+   còn đang hiện trên màn hình, khách chỉ còn thấy form đăng nhập. */
 async function doLogout() {
   await apiAuth('/logout', { method:'POST' }).catch(()=>{});
-  const siteKhach = await apiAuth('/site').catch(()=>null);
-  if (taiLaiNeuDoiSite(siteKhach?.site)) return;
-  currentUser = null;
-  updateAuthUI();
-  toast?.('Đã đăng xuất');
-  if (typeof showPage==='function') showPage('dashboard');
+  location.href = '/';
 }
 
 /* ═══ ĐỔI MẬT KHẨU ═══ */

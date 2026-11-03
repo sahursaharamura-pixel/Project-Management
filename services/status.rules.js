@@ -42,8 +42,13 @@ function suyRaTrangThai(item) {
   return item.status;
 }
 
+/* Hạng mục lớn (không phải hạng mục con). Số liệu cấp dự án chỉ tính trên
+   hạng mục lớn, để việc chia nhỏ thành hạng mục con không làm lệch tiến độ. */
+const hangMucChinh = items => items.filter(i => !i.parent_id);
+
 /* % hoàn thành của dự án = số hạng mục hoàn thành / tổng số hạng mục.
-   Mỗi hạng mục có trọng số bằng nhau, không phụ thuộc ngày tháng. */
+   Mỗi hạng mục có trọng số bằng nhau, không phụ thuộc ngày tháng.
+   Truyền vào danh sách hạng mục lớn (xem hangMucChinh). */
 function tinhTienDoDuAn(items) {
   if (!items.length) return 0;
   const done = items.filter(i => i.status === STATUS.HOAN_THANH).length;
@@ -66,7 +71,7 @@ const nowForMySQL = () => new Date().toISOString().slice(0, 19).replace('T', ' '
 
 module.exports = {
   STATUS,
-  suyRaTrangThai, tinhTienDoDuAn,
+  suyRaTrangThai, hangMucChinh, tinhTienDoDuAn,
   demHoanThanh, demDangLam, demQuaHan, demChamTienDo, demCoVanDe,
   tongGiaiNgan, tongNganSach,
   nowForMySQL,

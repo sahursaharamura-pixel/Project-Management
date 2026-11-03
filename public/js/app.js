@@ -294,7 +294,7 @@ function renderProjTabs(projs,allItems){
   }).join('');
   _allDashItems=allItems; // lưu để dùng cho phân trang
   $('proj-detail-panels').innerHTML=projs.map(p=>{
-    const items=allItems.filter(i=>i.project_id===p.id).sort((a,b)=>new Date(a.start_date||0)-new Date(b.start_date||0));
+    const items=xepHangMucCon(allItems.filter(i=>i.project_id===p.id).sort((a,b)=>new Date(a.start_date||0)-new Date(b.start_date||0)));
     return `<div class="ppanel${p.id===activeTabId?' active':''}" id="panel-${p.id}">${buildItemTable(items,p.id,1)}</div>`;
   }).join('');
 }
@@ -309,6 +309,38 @@ function switchTab(pid,col){
   });
   document.querySelectorAll('.ppanel').forEach(p=>p.classList.remove('active'));
   const panel=$('panel-'+pid); if(panel) panel.classList.add('active');
+}
+
+/* ── HẠNG MỤC CON ──
+   Xếp mỗi hạng mục con ngay sau hạng mục cha (giữ thứ tự sẵn có của hạng mục lớn).
+   Hạng mục con mà cha không có trong danh sách (do đang lọc) thì giữ nguyên chỗ. */
+function xepHangMucCon(items){
+  const ids=new Set(items.map(i=>i.id));
+  const conCua={};
+  items.forEach(i=>{ if(i.parent_id&&ids.has(i.parent_id)) (conCua[i.parent_id]=conCua[i.parent_id]||[]).push(i); });
+  const out=[];
+  items.forEach(i=>{
+    if(i.parent_id&&ids.has(i.parent_id)) return;
+    out.push(i);
+    (conCua[i.id]||[]).forEach(c=>out.push(c));
+  });
+  return out;
+}
+
+/* Ô tên hạng mục: hạng mục lớn kèm số mục con; hạng mục con thụt vào.
+   dangHien = danh sách đang hiển thị: cha không có trong đó (do lọc) thì ghi tên cha. */
+function tenHangMucHTML(i, dangHien, pri='', size=''){
+  const sz=size?`font-size:${size}`:'';
+  const nhom=i.group_name?`<div class="tbl-sub">${esc(i.group_name)}</div>`:'';
+  if(!i.parent_id){
+    const soCon=dangHien.filter(x=>x.parent_id===i.id).length;
+    return `<div class="tbl-name" style="${sz}">${pri}${esc(i.name)}${soCon?`<span class="hm-con-badge">${soCon} mục con</span>`:''}</div>${nhom}`;
+  }
+  const chaDangHien=dangHien.some(x=>x.id===i.parent_id);
+  return `<div class="hm-con">
+    <div class="tbl-name" style="${sz}"><span class="hm-con-mui">↳</span>${pri}${esc(i.name)}</div>
+    ${chaDangHien?nhom:`<div class="tbl-sub">Thuộc: ${esc(i.parent_name||'')}</div>`}
+  </div>`;
 }
 
 function deadlineNote(item){
@@ -382,7 +414,7 @@ function applyDbFilter(){
   // Group filtered items theo project
   projects.forEach(p=>{
     const panel=$('panel-'+p.id); if(!panel) return;
-    const pItems = filtered.filter(i=>i.project_id===p.id).sort((a,b)=>new Date(a.start_date||0)-new Date(b.start_date||0));
+    const pItems = xepHangMucCon(filtered.filter(i=>i.project_id===p.id).sort((a,b)=>new Date(a.start_date||0)-new Date(b.start_date||0)));
     panel.innerHTML = buildItemTable(pItems, p.id, 1);
   });
 
@@ -411,11 +443,8 @@ function buildItemTable(items, pid, page=1){
       duration=days+' ngày';
     }
     const th=i.tinh_hinh_moi;
-    return `<tr class="item-row" onclick="toggleItemDetailView(${i.id},${pid},this)" style="cursor:pointer">
-      <td>
-        <div class="tbl-name">${esc(i.name)}</div>
-        ${i.group_name?`<div class="tbl-sub">${esc(i.group_name)}</div>`:''}
-      </td>
+    return `<tr class="item-row${i.parent_id?' hm-con-row':''}" onclick="toggleItemDetailView(${i.id},${pid},this)" style="cursor:pointer">
+      <td>${tenHangMucHTML(i,items)}</td>
       <td><span class="pill ${s.pill}">${s.label}</span></td>
       <td style="color:#475569">${duration}</td>
       <td style="color:#475569">${fmtDate(i.start_date)}</td>
@@ -863,13 +892,13 @@ function recalcLate() {
   }
 }
 
-function openItemForm(item=null){
+function openItemForm(item=null, opts={}){
   const w=$('item-form-wrap');
   w.style.display='block';
   $('form-title').textContent=item?'Sửa hạng mục':'Thêm hạng mục mới';
   $('f-id').value        =item?.id||'';
   $('f-name').value      =item?.name||'';
-  $('f-project').value   =item?.project_id||'';
+  $('f-project').value   =item?.project_id||opts.project_id||'';
   $('f-group').value     =item?.group_name||'';
   $('f-contractor').value=item?.contractor||'';
   $('f-assignee').value  =item ? (item.assignee||'—') : (currentUser?.name||'');
@@ -877,6 +906,7 @@ function openItemForm(item=null){
   $('f-end').value       =item?.end_date?.split('T')[0]||'';
   $('f-priority').value  =item?.priority||'binh_thuong';
   $('f-note').value      =item?.note||'';
+  loadParentOptions(item, item?.parent_id||opts.parent_id||'');
 
   // Reset checkbox hoàn thành
   const doneWrap=$('done-wrap'), doneBox=$('f-done'), lateMsg=$('done-late-msg');
@@ -905,6 +935,44 @@ function openItemForm(item=null){
   }
 }
 
+/* Ô "Thuộc hạng mục" — chỉ liệt kê hạng mục lớn của dự án đang chọn (con chỉ có 1 cấp).
+   Hạng mục đang có con thì không chuyển thành con được -> khóa ô. */
+async function loadParentOptions(item=null, chon=''){
+  const sel=$('f-parent'), hint=$('f-parent-hint');
+  const pid=$('f-project').value;
+  sel.innerHTML='<option value="">— Không (hạng mục lớn) —</option>';
+  sel.disabled=false; hint.textContent='';
+  if(item?.so_con){
+    sel.disabled=true;
+    hint.textContent=`Đang có ${item.so_con} hạng mục con nên không thể làm hạng mục con.`;
+    return;
+  }
+  if(!pid) return;
+  const ds=(await api('/items?project_id='+pid)).filter(i=>!i.parent_id&&i.id!==item?.id);
+  sel.innerHTML+=ds.map(i=>`<option value="${i.id}">${esc(i.name)}</option>`).join('');
+  sel.value=String(chon||'');
+}
+
+/* Chọn hạng mục cha thì gợi ý luôn gói thầu / đơn vị thi công của cha nếu đang trống. */
+function onParentChange(){
+  const id=parseInt($('f-parent').value);
+  const cha=id&&_allNLItems.find(i=>i.id===id);
+  if(!cha) return;
+  if(!$('f-group').value)      $('f-group').value=cha.group_name||'';
+  if(!$('f-contractor').value) $('f-contractor').value=cha.contractor||'';
+}
+
+/* Nút "➕ Con" trên dòng hạng mục lớn */
+function addChildItem(parentId){
+  const cha=_allNLItems.find(i=>i.id===parentId);
+  if(!cha) return;
+  openItemForm(null,{project_id:cha.project_id, parent_id:cha.id});
+  $('form-title').textContent='Thêm hạng mục con — '+cha.name;
+  $('f-group').value=cha.group_name||'';
+  $('f-contractor').value=cha.contractor||'';
+  $('item-form-wrap').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
 function closeItemForm(){
   $('item-form-wrap').style.display='none';
   $('item-form').reset();
@@ -919,7 +987,8 @@ $('item-form').addEventListener('submit',async e=>{
   e.preventDefault();
   const id=$('f-id').value;
   const body={
-    project_id:$('f-project').value, name:$('f-name').value.trim(),
+    project_id:$('f-project').value, parent_id:$('f-parent').value||null,
+    name:$('f-name').value.trim(),
     group_name:$('f-group').value,   contractor:$('f-contractor').value,
     start_date:$('f-start').value,
     end_date:$('f-end').value,       status:$('f-status').value,
@@ -952,7 +1021,7 @@ async function loadItems(page=1){
 }
 
 function renderItemsPage(){
-  const items=_allNLItems;
+  const items=xepHangMucCon(_allNLItems);
   const total=items.length;
   const totalPages=Math.max(1,Math.ceil(total/NL_PER));
   _nlPage=Math.max(1,Math.min(_nlPage,totalPages));
@@ -966,18 +1035,16 @@ function renderItemsPage(){
     const st=STATUS[item.status]||{label:item.status,pill:'p-gray'};
     const od=item.end_date&&item.status!=='hoan_thanh'&&new Date(item.end_date)<new Date();
     const pri=item.priority==='khan_cap'?'🔴 ':item.priority==='quan_trong'?'⭐ ':'';
-    return `<tr>
+    return `<tr${item.parent_id?' class="hm-con-row"':''}>
       <td style="color:#94a3b8;font-size:13px">${idx}</td>
-      <td>
-        <div class="tbl-name">${pri}${esc(item.name)}</div>
-        ${item.group_name?`<div class="tbl-sub">${esc(item.group_name)}</div>`:''}
-      </td>
+      <td>${tenHangMucHTML(item,_allNLItems,pri)}</td>
       <td style="color:#475569">${esc(item.project_name)}</td>
       <td><span class="pill ${st.pill}">${st.label}</span></td>
       <td style="color:#475569">${fmtDate(item.start_date)}</td>
       <td style="${od?'color:#dc2626;font-weight:700':'color:#64748b'}">${fmtDate(item.end_date)}</td>
       <td style="color:#475569">${esc(item.assignee)||'—'}</td>
       <td style="text-align:center" class="js-nhap-lieu">
+        ${item.parent_id?'':`<button class="btn-outline btn-sm" title="Thêm hạng mục con" onclick="addChildItem(${item.id})">➕ Con</button>`}
         <button class="btn-edit btn-sm" onclick='editItem(${JSON.stringify(item)})'>✏ Sửa</button>
         <button class="btn-danger btn-sm" onclick="delItem(${item.id})">🗑</button>
       </td>
@@ -1000,7 +1067,8 @@ function renderItemsPage(){
 function editItem(item){ openItemForm(item); }
 
 async function delItem(id){
-  if(!confirm('Xóa hạng mục này?')) return;
+  const soCon=_allNLItems.find(i=>i.id===id)?.so_con||0;
+  if(!confirm(soCon?`Xóa hạng mục này và ${soCon} hạng mục con của nó?`:'Xóa hạng mục này?')) return;
   await api('/items/'+id,{method:'DELETE'});
   toast('Đã xóa hạng mục'); loadItems();
 }
@@ -1219,12 +1287,12 @@ async function loadArchives(){
           <table class="tbl" style="font-size:13px">
             <thead><tr><th>#</th><th>Hạng mục</th><th>Trạng thái</th><th>Ngày bắt đầu</th><th>Hạn HT</th><th>Phụ trách</th><th>Tình hình cuối</th></tr></thead>
             <tbody>
-              ${a.items.map((i,idx)=>{
+              ${xepHangMucCon(a.items).map((i,idx)=>{
                 const s2=STATUS[i.status]||{label:i.status,pill:'p-gray'};
                 const lastTH=i.tinh_hinh&&i.tinh_hinh.length?i.tinh_hinh[i.tinh_hinh.length-1]:null;
-                return `<tr>
+                return `<tr${i.parent_id?' class="hm-con-row"':''}>
                   <td style="color:#94a3b8">${idx+1}</td>
-                  <td><div class="tbl-name" style="font-size:13px">${esc(i.name)}</div>${i.group_name?`<div class="tbl-sub">${esc(i.group_name)}</div>`:''}</td>
+                  <td>${tenHangMucHTML(i,a.items,'','13px')}</td>
                   <td><span class="pill ${s2.pill}">${s2.label}</span></td>
                   <td style="color:#475569">${fmtDate(i.start_date)}</td>
                   <td style="color:#475569">${fmtDate(i.end_date)}</td>
@@ -1313,8 +1381,10 @@ async function loadProjectDetail(projId){
 /* ── Header ── */
 /* Tính % tiến độ theo số lượng hạng mục (Cách A)
    % = số HM hoàn thành / tổng số HM × 100
+   Chỉ tính hạng mục lớn (bỏ hạng mục con), khớp với summary phía server.
 */
 function calcProgressByDate(project, items){
+  items = items.filter(i=>!i.parent_id);
   if(!items.length) return 0;
   const done = items.filter(i=>i.status==='hoan_thanh').length;
   return Math.round(done / items.length * 100);
@@ -1410,10 +1480,11 @@ function renderGantt(d){
     cur = new Date(y, m+1, 1);
   }
 
-  // Nhóm theo group_name
+  // Nhóm theo group_name; hạng mục con đứng ngay sau cha, trong nhóm của cha
+  const nhomCha = Object.fromEntries(items.map(i=>[i.id, i.group_name || 'Khác']));
   const groups = {};
-  items.forEach(i=>{
-    const g = i.group_name || 'Khác';
+  xepHangMucCon(items).forEach(i=>{
+    const g = (i.parent_id && nhomCha[i.parent_id]) || i.group_name || 'Khác';
     if(!groups[g]) groups[g]=[];
     groups[g].push(i);
   });
@@ -1444,7 +1515,7 @@ function renderGantt(d){
       rowsHTML += `<div class="gantt-row">
         <div class="gantt-row-label" title="${esc(i.name)}">
           <span style="width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0;display:inline-block"></span>
-          <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px">${esc(i.name)}</span>
+          <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px;${i.parent_id?'padding-left:14px;color:#475569':''}">${i.parent_id?'↳ ':''}${esc(i.name)}</span>
         </div>
         <div class="gantt-row-bars" style="width:${TIMELINE_W}px;position:relative">
           ${Array.from({length:months.length},(_,mi)=>`<div class="gantt-col-line" style="left:${months[mi].left}px"></div>`).join('')}
@@ -1533,7 +1604,7 @@ let _pdPage=1;
 const PD_PER=10;
 
 function renderPdItems(items, statusFilter='', page=1){
-  const filtered = statusFilter ? items.filter(i=>i.status===statusFilter) : items;
+  const filtered = xepHangMucCon(statusFilter ? items.filter(i=>i.status===statusFilter) : items);
   const total     = filtered.length;
   const totalPages= Math.max(1, Math.ceil(total/PD_PER));
   _pdPage = Math.max(1, Math.min(page, totalPages));
@@ -1544,12 +1615,9 @@ function renderPdItems(items, statusFilter='', page=1){
     const note = deadlineNote(i);
     const num  = (_pdPage-1)*PD_PER + idx + 1;
     const lastTH = i.tinh_hinh?.length ? i.tinh_hinh[0] : null;
-    return `<tr class="pd-item-row" onclick="togglePdItemDetail(${i.id},this)" style="cursor:pointer">
+    return `<tr class="pd-item-row${i.parent_id?' hm-con-row':''}" onclick="togglePdItemDetail(${i.id},this)" style="cursor:pointer">
       <td style="color:#94a3b8">${num}</td>
-      <td>
-        <div class="tbl-name" style="font-size:13px">${esc(i.name)}</div>
-        ${i.group_name?`<div class="tbl-sub">${esc(i.group_name)}</div>`:''}
-      </td>
+      <td>${tenHangMucHTML(i,filtered,'','13px')}</td>
       <td><span class="pill ${s.pill}">${s.label}</span></td>
       <td style="color:#475569;white-space:nowrap">${fmtDate(i.start_date)}</td>
       <td style="color:#475569;white-space:nowrap">${fmtDate(i.end_date)}</td>

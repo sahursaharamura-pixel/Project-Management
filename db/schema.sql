@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS projects (
 CREATE TABLE IF NOT EXISTS items (
   id          INT AUTO_INCREMENT PRIMARY KEY,
   project_id  INT NOT NULL,
+  parent_id   INT NULL,            -- hạng mục cha (chỉ 1 cấp); NULL = hạng mục lớn
   name        VARCHAR(255) NOT NULL,
   group_name  VARCHAR(255) NOT NULL DEFAULT '',
   contractor  VARCHAR(255) NOT NULL DEFAULT '',
@@ -35,7 +36,9 @@ CREATE TABLE IF NOT EXISTS items (
   created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+  FOREIGN KEY (parent_id)  REFERENCES items(id)    ON DELETE CASCADE,
   INDEX idx_items_project (project_id),
+  INDEX idx_items_parent (parent_id),
   INDEX idx_items_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

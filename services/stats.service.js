@@ -24,7 +24,7 @@ async function tongHop(nguoiDung) {
 
   /* Số liệu từng dự án */
   const projs = duAnDangChay.map(p => {
-    const hangMuc = items.filter(i => i.project_id === p.id);
+    const hangMuc = rules.hangMucChinh(items.filter(i => i.project_id === p.id));
     return {
       ...p,
       total:    hangMuc.length,
@@ -35,18 +35,19 @@ async function tongHop(nguoiDung) {
     };
   });
 
-  /* Số liệu toàn hệ thống */
+  /* Số liệu toàn hệ thống — chỉ tính hạng mục lớn, như số liệu từng dự án */
+  const hangMucLon = rules.hangMucChinh(items);
   const totals = {
-    total:     items.length,
-    done:      rules.demHoanThanh(items),
-    problem:   rules.demCoVanDe(items),
+    total:     hangMucLon.length,
+    done:      rules.demHoanThanh(hangMucLon),
+    problem:   rules.demCoVanDe(hangMucLon),
     budget:    rules.tongNganSach(projects),   // tính cả dự án đã lưu trữ
-    disbursed: rules.tongGiaiNgan(items),
+    disbursed: rules.tongGiaiNgan(hangMucLon),
   };
 
   /* Phân bố theo trạng thái */
   const dem = {};
-  items.forEach(i => { dem[i.status] = (dem[i.status] || 0) + 1; });
+  hangMucLon.forEach(i => { dem[i.status] = (dem[i.status] || 0) + 1; });
   const byStatus = Object.entries(dem).map(([status, c]) => ({ status, c }));
 
   const tenDuAn = Object.fromEntries(projects.map(p => [p.id, p.name]));
@@ -59,6 +60,7 @@ async function tongHop(nguoiDung) {
 
   /* Toàn bộ hạng mục, kèm bản tin tình hình mới nhất của mỗi hạng mục */
   const tinhHinhAll = await tinhHinhRepo.findAll(site);
+  const tenHangMuc = Object.fromEntries(items.map(i => [i.id, i.name]));
   const allItems = items.map(i => {
     const cuaHangMuc = tinhHinhAll
       .filter(l => l.item_id === i.id)
@@ -66,6 +68,7 @@ async function tongHop(nguoiDung) {
     return {
       ...i,
       project_name:  tenDuAn[i.project_id] || '',
+      parent_name:   i.parent_id ? (tenHangMuc[i.parent_id] || '') : '',
       tinh_hinh_moi: cuaHangMuc[0] || null,
     };
   });

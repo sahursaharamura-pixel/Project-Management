@@ -153,9 +153,23 @@ function alerts(allItems) {
   return `<div class="alert-box">${rows}</div>`;
 }
 
+/* Hạng mục con đứng ngay sau hạng mục cha (cha không có trong danh sách thì giữ nguyên chỗ). */
+function xepHangMucCon(items) {
+  const ids = new Set(items.map(i => i.id));
+  const conCua = {};
+  items.forEach(i => { if (i.parent_id && ids.has(i.parent_id)) (conCua[i.parent_id] = conCua[i.parent_id] || []).push(i); });
+  const out = [];
+  items.forEach(i => {
+    if (i.parent_id && ids.has(i.parent_id)) return;
+    out.push(i);
+    (conCua[i.id] || []).forEach(c => out.push(c));
+  });
+  return out;
+}
+
 /* ═══════════ GANTT (cho 1 dự án) ═══════════ */
 function gantt(items) {
-  const rows = items.filter(i => i.start_date && i.end_date);
+  const rows = xepHangMucCon(items.filter(i => i.start_date && i.end_date));
   if (!rows.length) return '<div class="none">Chưa đủ ngày bắt đầu / kết thúc để vẽ biểu đồ.</div>';
 
   let min = new Date(Math.min(...rows.map(i => +new Date(i.start_date))));
@@ -193,7 +207,8 @@ function gantt(items) {
     const w = Math.max(x2 - x1, 3);
     const st = STATUS[it.status] || STATUS.chua_bat_dau;
     const pr = Math.max(0, Math.min(100, Number(it.progress) || 0));
-    const nm = it.name.length > 30 ? it.name.slice(0, 29) + '…' : it.name;
+    const ten = (it.parent_id ? '  ↳ ' : '') + it.name;
+    const nm = ten.length > 30 ? ten.slice(0, 29) + '…' : ten;
     return `
       <g>
         <text x="0" y="${y + 12}" font-size="10" fill="#334155">${esc(nm)}</text>
@@ -221,8 +236,8 @@ function gantt(items) {
 
 /* ═══════════ CHI TIẾT 1 DỰ ÁN ═══════════ */
 function projectBlock(d, opt) {
-  const p = d.project, items = d.items || [], s = d.summary || {};
-  const disb = items.reduce((a, i) => a + (Number(i.disbursed) || 0), 0);
+  const p = d.project, items = xepHangMucCon(d.items || []), s = d.summary || {};
+  const disb = items.filter(i => !i.parent_id).reduce((a, i) => a + (Number(i.disbursed) || 0), 0);
   const bud = Number(p.budget) || 0;
 
   /* Bảng hạng mục */
@@ -231,7 +246,7 @@ function projectBlock(d, opt) {
     return `<tr>
       <td class="c">${k + 1}</td>
       <td>
-        <span class="nm">${esc(it.name)}</span>
+        <span class="nm"${it.parent_id ? ' style="padding-left:14px;font-weight:500"' : ''}>${it.parent_id ? '↳ ' : ''}${esc(it.name)}</span>
         ${it.group_name || it.contractor
           ? `<span class="sub">${[it.group_name, it.contractor].filter(Boolean).map(esc).join(' · ')}</span>`
           : ''}
@@ -331,18 +346,19 @@ async function build() {
     ? allItems
     : allItems.filter(i => String(i.project_id) === String(scope));
 
-  /* Chỉ số — tính lại theo phạm vi đang chọn */
+  /* Chỉ số — tính lại theo phạm vi đang chọn, chỉ trên hạng mục lớn (như server) */
+  const hangMucLon = scopedItems.filter(i => !i.parent_id);
   const T = scope === 'all' ? totals : {
-    total:     scopedItems.length,
-    done:      scopedItems.filter(i => i.status === 'hoan_thanh').length,
-    problem:   scopedItems.filter(i => ['qua_han','cham_tien_do'].includes(i.status)).length,
+    total:     hangMucLon.length,
+    done:      hangMucLon.filter(i => i.status === 'hoan_thanh').length,
+    problem:   hangMucLon.filter(i => ['qua_han','cham_tien_do'].includes(i.status)).length,
     budget:    scoped.reduce((s, p) => s + Number(p.budget || 0), 0),
-    disbursed: scopedItems.reduce((s, i) => s + Number(i.disbursed || 0), 0),
+    disbursed: hangMucLon.reduce((s, i) => s + Number(i.disbursed || 0), 0),
   };
 
   const BS = scope === 'all' ? byStatus : (() => {
     const m = {};
-    scopedItems.forEach(i => { m[i.status] = (m[i.status] || 0) + 1; });
+    hangMucLon.forEach(i => { m[i.status] = (m[i.status] || 0) + 1; });
     return Object.entries(m).map(([status, c]) => ({ status, c }));
   })();
 

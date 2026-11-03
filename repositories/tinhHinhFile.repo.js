@@ -54,7 +54,7 @@ async function findById(id) {
   return rows[0] || null;
 }
 
-/* Tên file đã lưu của mọi văn bản thuộc 1 hạng mục / 1 dự án —
+/* Tên file đã lưu của mọi văn bản thuộc 1 hạng mục (kể cả hạng mục con) / 1 dự án —
    lấy TRƯỚC khi xóa (bảng tự xóa theo CASCADE) để dọn file trên đĩa. */
 const findTenLuuByTinhHinh = (tinhHinhId) =>
   query('SELECT ten_luu FROM tinh_hinh_files WHERE tinh_hinh_id = ?', [tinhHinhId]);
@@ -63,8 +63,8 @@ const findTenLuuByItem = (itemId) =>
   query(
     `SELECT f.ten_luu FROM tinh_hinh_files f
        INNER JOIN tinh_hinh th ON f.tinh_hinh_id = th.id
-     WHERE th.item_id = ?`,
-    [itemId]
+     WHERE th.item_id = ? OR th.item_id IN (SELECT id FROM items WHERE parent_id = ?)`,
+    [itemId, itemId]
   );
 
 const findTenLuuByProject = (projectId) =>

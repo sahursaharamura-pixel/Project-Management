@@ -36,6 +36,7 @@ async function bangTenDuAn(site) {
 function chuanHoaHangMuc(f) {
   return {
     project_id: parseInt(f.project_id),
+    parent_id:  parseInt(f.parent_id) || null,
     name:       f.name,
     group_name: f.group_name || '',
     contractor: f.contractor || '',
@@ -51,6 +52,19 @@ function chuanHoaHangMuc(f) {
 async function kiemTraDuAnTonTai(projectId, site) {
   if (!(await projectRepo.exists(projectId, site))) {
     throw badRequest('Dự án không tồn tại');
+  }
+}
+
+/* Hạng mục con chỉ có 1 cấp: cha phải là hạng mục lớn cùng dự án,
+   và hạng mục đang có con thì không được làm con của hạng mục khác. */
+async function kiemTraHangMucCha(parentId, projectId, itemId = null) {
+  if (!parentId) return;
+  if (parentId === itemId) throw badRequest('Hạng mục không thể là con của chính nó');
+  const cha = await itemRepo.findById(parentId);
+  if (!cha || cha.project_id !== projectId) throw badRequest('Hạng mục cha không thuộc dự án đã chọn');
+  if (cha.parent_id) throw badRequest('Chỉ được tạo hạng mục con 1 cấp (hạng mục cha đang là hạng mục con)');
+  if (itemId && await itemRepo.countChildren(itemId) > 0) {
+    throw badRequest('Hạng mục này đang có hạng mục con nên không thể chuyển thành hạng mục con');
   }
 }
 
@@ -77,19 +91,32 @@ async function danhSach(site, { project_id, status, search }) {
     );
   }
 
+  /* Tên hạng mục cha + số hạng mục con: tính trên toàn site, không theo kết quả lọc. */
+  const tatCa = await itemRepo.findAll(site);
+  const tenHangMuc = Object.fromEntries(tatCa.map(i => [i.id, i.name]));
+  const soCon = {};
+  tatCa.forEach(i => { if (i.parent_id) soCon[i.parent_id] = (soCon[i.parent_id] || 0) + 1; });
+
   return items
     .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))
-    .map(i => ({ ...i, project_name: tenDuAn[i.project_id] || '' }));
+    .map(i => ({
+      ...i,
+      project_name: tenDuAn[i.project_id] || '',
+      parent_name:  i.parent_id ? (tenHangMuc[i.parent_id] || '') : '',
+      so_con:       soCon[i.id] || 0,
+    }));
 }
 
 /* ── TẠO / SỬA / XÓA HẠNG MỤC ─────────────────────────────── */
 async function tao(nguoiDung, f) {
   if (!f.name || !f.project_id) throw badRequest('Thiếu thông tin bắt buộc');
-  await kiemTraDuAnTonTai(parseInt(f.project_id), siteService.siteCua(nguoiDung));
+  const duLieu = chuanHoaHangMuc(f);
+  await kiemTraDuAnTonTai(duLieu.project_id, siteService.siteCua(nguoiDung));
+  await kiemTraHangMucCha(duLieu.parent_id, duLieu.project_id);
 
   /* Người phụ trách hạng mục luôn là người thêm hạng mục. */
   const id = await itemRepo.insert({
-    ...chuanHoaHangMuc(f),
+    ...duLieu,
     assignee: nguoiDung.name || '',
     status:   f.status   || rules.STATUS.CHUA_BAT_DAU,
     priority: f.priority || 'binh_thuong',
@@ -105,19 +132,25 @@ async function tao(nguoiDung, f) {
 async function capNhat(nguoiDung, id, f) {
   if (!f.name || !f.project_id) throw badRequest('Thiếu thông tin bắt buộc');
   await kiemTraHangMucCuaSite(nguoiDung, id);
-  await kiemTraDuAnTonTai(parseInt(f.project_id), siteService.siteCua(nguoiDung));
+  const duLieu = chuanHoaHangMuc(f);
+  await kiemTraDuAnTonTai(duLieu.project_id, siteService.siteCua(nguoiDung));
+  await kiemTraHangMucCha(duLieu.parent_id, duLieu.project_id, id);
 
   /* Người phụ trách cố định theo người tạo -> sửa không đổi được. */
   const hienTai = await itemRepo.findById(id);
   if (!hienTai) throw notFound('Không tìm thấy hạng mục');
 
   await itemRepo.update(id, {
-    ...chuanHoaHangMuc(f),
+    ...duLieu,
     assignee:  hienTai.assignee || '',
     status:    f.status,
     priority:  f.priority,
     done_date: f.done_date || null,
   });
+  /* Chuyển hạng mục lớn sang dự án khác thì mang theo các hạng mục con. */
+  if (duLieu.project_id !== hienTai.project_id) {
+    await itemRepo.moveChildren(id, duLieu.project_id);
+  }
 
   await audit.ghiNhatKy({
     user: nguoiDung, action: 'update', entity: 'item',

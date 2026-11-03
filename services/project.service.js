@@ -44,7 +44,7 @@ async function danhSach(nguoiDung) {
   ]);
 
   return projects.map(p => {
-    const hangMuc = items.filter(i => i.project_id === p.id);
+    const hangMuc = rules.hangMucChinh(items.filter(i => i.project_id === p.id));
     return {
       ...p,
       total:    hangMuc.length,
@@ -106,24 +106,26 @@ async function chiTiet(nguoiDung, id) {
     await tinhHinhRepo.findByItemIds(items.map(i => i.id))
   );
 
+  const tenHangMuc = Object.fromEntries(items.map(i => [i.id, i.name]));
   const itemsWithTH = items.map(i => ({
     ...i,
+    parent_name: i.parent_id ? (tenHangMuc[i.parent_id] || '') : '',
     tinh_hinh: tinhHinhAll.filter(l => l.item_id === i.id),
   }));
 
-  const tenHangMuc = Object.fromEntries(items.map(i => [i.id, i.name]));
   const recentTH = [...tinhHinhAll]
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
     .slice(0, SO_TINH_HINH_GAN_DAY)
     .map(l => ({ ...l, item_name: tenHangMuc[l.item_id] || '' }));
 
+  const hangMucLon = rules.hangMucChinh(items);
   const summary = {
-    total:    items.length,
-    done:     rules.demHoanThanh(items),
-    inprog:   rules.demDangLam(items),
-    overdue:  rules.demQuaHan(items),
-    slow:     rules.demChamTienDo(items),
-    progress: rules.tinhTienDoDuAn(items),
+    total:    hangMucLon.length,
+    done:     rules.demHoanThanh(hangMucLon),
+    inprog:   rules.demDangLam(hangMucLon),
+    overdue:  rules.demQuaHan(hangMucLon),
+    slow:     rules.demChamTienDo(hangMucLon),
+    progress: rules.tinhTienDoDuAn(hangMucLon),
   };
 
   return { project, items: itemsWithTH, recentTH, summary };
@@ -150,10 +152,11 @@ async function luuTru(nguoiDung, id, ghiChu) {
       .sort((a, b) => new Date(a.created_at) - new Date(b.created_at)),
   }));
 
+  const hangMucLon = rules.hangMucChinh(items);
   const summary = {
-    total_items:     items.length,
-    done_items:      rules.demHoanThanh(items),
-    total_disbursed: rules.tongGiaiNgan(items),
+    total_items:     hangMucLon.length,
+    done_items:      rules.demHoanThanh(hangMucLon),
+    total_disbursed: rules.tongGiaiNgan(hangMucLon),
     archived_at:     now,
   };
 

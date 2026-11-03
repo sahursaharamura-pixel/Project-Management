@@ -287,6 +287,12 @@ body.no-nhap-lieu .js-nhap-lieu{display:none!important}
 /* ══ ITEM ROW INTERACTIVE ══ */
 .item-row:hover td{background:#f0f7ff!important}
 .item-row.row-active td{background:#eff6ff!important;border-bottom:none}
+/* Hạng mục con: thụt vào dưới hạng mục cha */
+.hm-con-row td{background:#fafcff}
+.hm-con{padding-left:18px;border-left:2px solid #cbd5e1;margin-left:4px}
+.hm-con .tbl-name{font-weight:500}
+.hm-con-mui{color:#94a3b8;margin-right:6px}
+.hm-con-badge{display:inline-block;margin-left:8px;font-size:11px;font-weight:600;line-height:18px;padding:0 8px;border-radius:999px;background:#dbeafe;color:#1d4ed8;vertical-align:middle}
 .th-preview{font-size:12px;color:#374151;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;max-width:200px}
 
 /* ══ ITEM DETAIL PANEL ══ */

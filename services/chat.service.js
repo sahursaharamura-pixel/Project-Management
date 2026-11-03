@@ -82,6 +82,7 @@ async function gomNguCanh(site) {
       },
       items: hangMuc.map(i => ({
         name: i.name, status: i.status,
+        hang_muc_cha: i.parent_id ? (hangMuc.find(c => c.id === i.parent_id)?.name || '') : undefined,
         start_date: i.start_date, end_date: i.end_date,
         assignee: i.assignee, group_name: i.group_name,
         note: i.note,

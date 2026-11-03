@@ -76,9 +76,18 @@ async function ensureSiteColumns() {
   await themCotNeuChua('archives', 'site', "VARCHAR(20) NOT NULL DEFAULT 'khcn', ADD INDEX idx_archives_site (site)");
 }
 
+/* ── HẠNG MỤC CON ── (db/migrations/005_add_item_parent.sql làm đúng việc này nếu muốn chạy tay)
+   Hạng mục cũ nhận NULL -> đều là hạng mục lớn như trước. */
+async function ensureItemParentColumn() {
+  await themCotNeuChua('items', 'parent_id',
+    'INT NULL AFTER project_id, ADD INDEX idx_items_parent (parent_id), ' +
+    'ADD CONSTRAINT fk_items_parent FOREIGN KEY (parent_id) REFERENCES items(id) ON DELETE CASCADE');
+}
+
 async function initDB() {
   await require('../repositories/tinhHinhFile.repo').ensureTable();
   await ensureSiteColumns();
+  await ensureItemParentColumn();
   await seedIfEmpty();
   await seedAdminIfEmpty();
 }

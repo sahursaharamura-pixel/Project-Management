@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Theo dõi Tiến độ Dự án</title>
 <link rel="stylesheet" href="/fonts/be-vietnam-pro.css">
-<link rel="stylesheet" href="/css/main.css?v=20261028">
+<link rel="stylesheet" href="/css/main.css?v=20261103">
 </head>
 <body>
 
@@ -216,7 +216,11 @@
               <input type="hidden" id="f-status">
               <div class="form-grid">
                 <div class="fg span2"><label>Tên hạng mục <span class="req">*</span></label><input id="f-name" placeholder="VD: Thi công móng cọc A1" required></div>
-                <div class="fg"><label>Thuộc dự án <span class="req">*</span></label><select id="f-project" required><option value="">-- Chọn --</option></select></div>
+                <div class="fg"><label>Thuộc dự án <span class="req">*</span></label><select id="f-project" required onchange="loadParentOptions()"><option value="">-- Chọn --</option></select></div>
+                <div class="fg"><label>Thuộc hạng mục (nếu là hạng mục con)</label>
+                  <select id="f-parent" onchange="onParentChange()"><option value="">— Không (hạng mục lớn) —</option></select>
+                  <div id="f-parent-hint" style="font-size:11px;color:#64748b;margin-top:4px"></div>
+                </div>
                 <div class="fg"><label>Gói thầu / Nhóm</label><input id="f-group" placeholder="VD: Gói thầu số 2"></div>
                 <div class="fg"><label>Đơn vị thi công</label><input id="f-contractor" placeholder="VD: Cty TNHH XD ABC"></div>
                 <div class="fg"><label>Người phụ trách</label><input id="f-assignee" readonly title="Tự động là người thêm hạng mục" style="background:#f8fafc;color:#475569"></div>
@@ -734,6 +738,6 @@
 <script src="/js/auth.js?v=20260803"></script>
 <script src="/js/khcn.js?v=20260721"></script>
 <script src="/js/sxkd.js?v=20260722"></script>
-<script src="/js/app.js?v=20260803"></script>
+<script src="/js/app.js?v=20261103"></script>
 </body>
 </html>

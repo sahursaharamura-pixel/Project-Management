@@ -18,6 +18,14 @@ custom.setHttpOptionsDefaults({ timeout: 15000 });
 
 const daBat = () => !!E.OIDC_ISSUER;
 
+/* Nhật ký dò lỗi SSO. Với iisnode, dòng này nằm trong file ...-stdout-....txt ở thư
+   mục iisnode (tìm "[SSO]"). Chỉ ghi diễn biến và tên đăng nhập, KHÔNG ghi code,
+   state, token hay mã bí mật. */
+function ghiLog(noiDung) {
+  const luc = new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
+  console.log(`[SSO] ${luc} | ${noiDung}`);
+}
+
 /* Chỉ giữ client khi đã tải được cấu hình từ myapps; chưa tải được thì lần sau
    thử lại, nên myapps có trục trặc rồi khôi phục cũng không phải khởi động lại. */
 let client = null;
@@ -30,6 +38,9 @@ async function layClient() {
       redirect_uris:  [diaChiQuayVe()],
       response_types: ['code'],
     });
+    /* Mặc định lệch đồng hồ 0 giây: máy chủ chậm hơn myapps nửa giây là báo
+       "JWT issued in the future" và đăng nhập hỏng ngẫu nhiên. */
+    client[custom.clock_tolerance] = 120;
   }
   return client;
 }
@@ -56,4 +67,4 @@ async function nhanKetQua(req, { verifier, state }) {
   return token.claims().preferred_username;
 }
 
-module.exports = { daBat, taoYeuCauDangNhap, nhanKetQua };
+module.exports = { daBat, ghiLog, taoYeuCauDangNhap, nhanKetQua };

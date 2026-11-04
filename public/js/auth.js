@@ -13,7 +13,7 @@ const THONG_BAO_SSO = {
   error:    'Đăng nhập qua myapps không thành công. Vui lòng thử lại hoặc đăng nhập bằng mật khẩu.',
   evnloi:   'Hệ thống SmartEVN đang gián đoạn nên chưa đăng nhập qua myapps được. Vui lòng đăng nhập bằng địa chỉ riêng của phần mềm, tại form bên dưới.',
   denied:   'Bạn đã huỷ đăng nhập qua myapps. Có thể đăng nhập bằng mật khẩu bên dưới.',
-  noaccess: 'Tài khoản myapps của bạn chưa được cấp quyền vào phần mềm này. Vui lòng liên hệ quản trị viên.',
+  noaccess: 'Bạn chưa được cấp quyền, liên hệ với Quản trị phần mềm để được cấp quyền',
 };
 const thamSoUrl = new URLSearchParams(location.search);
 let thongBaoSso = THONG_BAO_SSO[thamSoUrl.get('sso')] || null;

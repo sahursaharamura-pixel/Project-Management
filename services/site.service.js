@@ -4,19 +4,23 @@
 
    Site của người dùng suy ra từ don_vi_id (SmartEVN trả về lúc đăng nhập):
    - don_vi_id nằm trong donViIds của site nào -> vào site đó.
-   - Còn lại (đơn vị khác, tài khoản nội bộ, khách chưa đăng nhập) -> site mặc định.
+   - Còn lại (tài khoản nội bộ, khách chưa đăng nhập) -> site mặc định. Tài khoản EVN
+     thuộc đơn vị chưa khai báo ở đây thì không được đăng nhập (auth.service).
    Admin được chuyển qua lại giữa các site (lưu trong session).
 
    Thêm đơn vị mới: thêm 1 mục vào SITES, không cần sửa chỗ nào khác. */
 const { notFound, forbidden } = require('../utils/AppError');
 
 const SITES = {
-  khcn:   { ten: 'Ban KHCN&CĐS', donViIds: [],   coTrangPhu: true  },
+  khcn:   { ten: 'Ban KHCN&CĐS', donViIds: [32], coTrangPhu: true  },
   thacmo: { ten: 'Thác Mơ',      donViIds: [30], coTrangPhu: false },
 };
 const SITE_MAC_DINH = 'khcn';
 
 const hopLe = (site) => Object.prototype.hasOwnProperty.call(SITES, site);
+
+const coSiteChoDonVi = (donViId) =>
+  Object.values(SITES).some(s => s.donViIds.includes(Number(donViId)));
 
 function siteTheoDonVi(donViId) {
   const id = Number(donViId);
@@ -43,6 +47,6 @@ function kiemTraTrangPhu(site) {
 }
 
 module.exports = {
-  SITES, SITE_MAC_DINH, hopLe, siteTheoDonVi, siteCua, thongTin, danhSach,
+  SITES, SITE_MAC_DINH, hopLe, coSiteChoDonVi, siteTheoDonVi, siteCua, thongTin, danhSach,
   kiemTraThuoc, kiemTraTrangPhu,
 };

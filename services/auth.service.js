@@ -18,6 +18,8 @@ const MAT_KHAU_TOI_THIEU = 6;
 const BCRYPT_ROUNDS      = 10;
 
 /* Chỉ chấp nhận đúng 2 vai trò; giá trị lạ đều quy về 'user'. */
+const CHUA_CAP_QUYEN = 'Bạn chưa được cấp quyền, liên hệ với Quản trị phần mềm để được cấp quyền';
+
 const chuanHoaVaiTro = (role) => (role === 'admin' ? 'admin' : 'user');
 
 /* Thông tin user lưu vào session — cố tình KHÔNG chứa password_hash.
@@ -60,8 +62,16 @@ function kiemTraDoDaiMatKhau(matKhau) {
   }
 }
 
-/* Ghi log đăng nhập + đóng gói kết quả trả về (dùng chung local & EVN). */
+/* Tài khoản EVN thuộc đơn vị chưa khai báo trong site.service thì không được vào.
+   Admin và tài khoản nội bộ (do admin tạo) không xét đơn vị. */
+function kiemTraDonVi(user) {
+  if (user.role === 'admin' || (user.auth_source || 'local') !== 'evn') return;
+  if (!siteService.coSiteChoDonVi(user.don_vi_id)) throw forbidden(CHUA_CAP_QUYEN);
+}
+
+/* Ghi log đăng nhập + đóng gói kết quả trả về (dùng chung local, EVN & myapps). */
 async function hoanTatDangNhap(user, mustChange, ip, nguon) {
+  kiemTraDonVi(user);
   const phien = thongTinPhien(user);
   await audit.ghiNhatKy({
     user: phien, action: 'login', entity: 'user',
@@ -124,7 +134,7 @@ async function dangNhapSso({ username, ip }) {
   if (!kq.ok && evnLogin.laLoiHaTang(kq.reason)) throw new AppError(503, evnLogin.dichLoi(kq.reason));
 
   const user = kq.ok ? await evnLogin.taoHoacDongBo(kq.user) : null;
-  if (!user || user.disabled) throw forbidden('Tài khoản chưa được cấp quyền vào phần mềm');
+  if (!user || user.disabled) throw forbidden(CHUA_CAP_QUYEN);
   return hoanTatDangNhap(user, false, ip, 'Qua myapps');
 }
 

@@ -12,7 +12,7 @@ const smartevn = require('./smartevn.service');
 const evnLogin = require('./evnLogin.service');
 const permission = require('./permission.service');
 const siteService = require('./site.service');
-const { AppError, badRequest, unauthorized, notFound } = require('../utils/AppError');
+const { AppError, badRequest, unauthorized, forbidden, notFound } = require('../utils/AppError');
 
 const MAT_KHAU_TOI_THIEU = 6;
 const BCRYPT_ROUNDS      = 10;
@@ -61,12 +61,12 @@ function kiemTraDoDaiMatKhau(matKhau) {
 }
 
 /* Ghi log đăng nhập + đóng gói kết quả trả về (dùng chung local & EVN). */
-async function hoanTatDangNhap(user, mustChange, ip) {
+async function hoanTatDangNhap(user, mustChange, ip, nguon) {
   const phien = thongTinPhien(user);
   await audit.ghiNhatKy({
     user: phien, action: 'login', entity: 'user',
     entity_id: user.id, entity_name: user.name,
-    detail: ip ? `IP: ${ip}` : undefined,
+    detail: [nguon, ip && `IP: ${ip}`].filter(Boolean).join(' | ') || undefined,
   });
   return { phien, ketQua: { ...nguoiDungHienTai(phien), must_change_password: !!mustChange } };
 }
@@ -107,6 +107,30 @@ async function dangNhap({ username, password, ip }) {
   }
 
   throw unauthorized('Tên đăng nhập hoặc mật khẩu không đúng');
+}
+
+/* ── ĐĂNG NHẬP QUA MYAPPS (SSO) ─────────────────────────────
+   myapps đã xác thực xong, chỉ cho biết tên đăng nhập EVNID. Lấy hồ sơ từ SmartEVN
+   rồi tạo/đồng bộ tài khoản, đúng một đường với đăng nhập bằng mật khẩu SmartEVN.
+   - SmartEVN không có người này, hoặc tài khoản bị khóa -> "chưa được cấp quyền" (403).
+     Nhờ đó tài khoản nội bộ (vd. admin) không thể vào bằng một tên EVNID trùng tên.
+   - SmartEVN đang gián đoạn: người đã từng đăng nhập bằng tài khoản EVN vẫn vào được
+     với thông tin đã lưu; người mới thì báo lỗi hạ tầng (503). */
+async function dangNhapSso({ username, ip }) {
+  const ten = String(username || '').trim();
+  if (!ten) throw badRequest('myapps không trả về tên đăng nhập');
+
+  const kq = await smartevn.layNguoiDung(ten);
+  let user = null;
+  if (kq.ok) {
+    user = await evnLogin.taoHoacDongBo(kq.user);
+  } else if (evnLogin.laLoiHaTang(kq.reason)) {
+    const daCo = await userRepo.findByUsername(ten);
+    if (!daCo || daCo.auth_source !== 'evn') throw new AppError(503, evnLogin.dichLoi(kq.reason));
+    user = daCo;
+  }
+  if (!user || user.disabled) throw forbidden('Tài khoản chưa được cấp quyền vào phần mềm');
+  return hoanTatDangNhap(user, false, ip, 'Qua myapps');
 }
 
 /* ── HỒ SƠ NGƯỜI DÙNG HIỆN TẠI ─────────────────────────────
@@ -226,6 +250,6 @@ async function xoaNguoiDung(nguoiThucHien, id) {
 }
 
 module.exports = {
-  dangNhap, layHoSo, doiMatKhau, thongTinSite, nguoiDungHienTai, chuyenSite,
+  dangNhap, dangNhapSso, layHoSo, doiMatKhau, thongTinSite, nguoiDungHienTai, chuyenSite,
   danhSachNguoiDung, taoNguoiDung, capNhatNguoiDung, xoaNguoiDung,
 };

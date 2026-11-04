@@ -7,6 +7,17 @@ let currentUser = null;
    trang này của EVN, không thể đổi trong ứng dụng. */
 const EVN_PASSWORD_URL = 'https://lichtuan.evngenco2.vn/Auth/QuenMatKhau';
 
+/* Đăng nhập qua myapps không thành công -> server chuyển về /?sso=... Giữ câu giải
+   thích để hiện trên form đăng nhập; xoá tham số khỏi địa chỉ để tải lại không hiện lại. */
+const THONG_BAO_SSO = {
+  error:    'Đăng nhập qua myapps không thành công. Vui lòng thử lại hoặc đăng nhập bằng mật khẩu.',
+  denied:   'Bạn đã huỷ đăng nhập qua myapps. Có thể đăng nhập bằng mật khẩu bên dưới.',
+  noaccess: 'Tài khoản myapps của bạn chưa được cấp quyền vào phần mềm này. Vui lòng liên hệ quản trị viên.',
+};
+const thamSoUrl = new URLSearchParams(location.search);
+let thongBaoSso = THONG_BAO_SSO[thamSoUrl.get('sso')] || null;
+if (thamSoUrl.has('sso')) history.replaceState(null, '', location.pathname);
+
 async function apiAuth(path, opts={}) {
   const r = await fetch('/api'+path,{
     headers:{'Content-Type':'application/json'},
@@ -150,7 +161,9 @@ function escapeHtml(s) {
 
 /* ═══ LOGIN MODAL ═══ */
 function openLoginModal() {
-  document.getElementById('login-error').style.display='none';
+  const loiEl = document.getElementById('login-error');
+  loiEl.style.display = thongBaoSso ? 'block' : 'none';
+  if (thongBaoSso) loiEl.textContent = thongBaoSso;
   document.getElementById('login-username').value='';
   document.getElementById('login-password').value='';
   document.getElementById('login-password').type='password';
@@ -165,6 +178,7 @@ function openLoginModal() {
   }
 }
 function closeLoginModal() {
+  thongBaoSso = null;
   document.getElementById('modal-login').style.display='none';
 }
 

@@ -44,10 +44,13 @@ async function taoHoacDongBo(evnUser) {
   const tenDonVi   = evnUser.donVi?.ten || evnUser.tenDonVi;
   const donVi      = typeof tenDonVi === 'string' && tenDonVi.trim() ? tenDonVi.trim() : null;
 
-  /* Ưu tiên đối chiếu theo mã NV; không có mã thì lùi về username. */
-  let user = maNhanVien
-    ? await userRepo.findByMaNhanVien(maNhanVien)
-    : await userRepo.findByUsername(username);
+  /* Ưu tiên đối chiếu theo mã NV; không có thì lùi về username. Dòng trùng tên mà
+     đã gắn mã NV khác là người khác -> không nhận (username UNIQUE nên sẽ báo lỗi). */
+  let user = maNhanVien ? await userRepo.findByMaNhanVien(maNhanVien) : null;
+  if (!user) {
+    const trungTen = await userRepo.findByUsername(username);
+    if (trungTen && (!maNhanVien || !trungTen.ma_nhan_vien)) user = trungTen;
+  }
 
   if (!user) {
     const id = await userRepo.insertEvn({
@@ -58,7 +61,7 @@ async function taoHoacDongBo(evnUser) {
   } else {
     await userRepo.syncEvnInfo(user.id, { username, name, chuc_danh: chucDanh, phong_ban: phongBan, don_vi: donVi, don_vi_id: donViId, email });
     user.username = username; user.name = name;
-    user.chuc_danh = chucDanh; user.don_vi_id = donViId;
+    user.chuc_danh = chucDanh; user.don_vi_id = donViId; user.auth_source = 'evn';
   }
 
   return user;

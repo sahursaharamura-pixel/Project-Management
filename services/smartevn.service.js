@@ -6,6 +6,11 @@
      Body:   { username, password }
      OK:     { authenticated: true, user: { username, hoTen, chucDanh, maNhanVien, email, ... } }
      Sai:    { authenticated: false, reason: 'invalid_credentials' | 'locked' | ... }
+
+   GET {BASE}/users/{username} — tra hồ sơ 1 người (không cần mật khẩu)
+     Header: X-Api-Key
+     OK:     { username, hoTen, chucDanh, maNhanVien, email, donVi: { id }, phongBan: { ... } }
+     Không có người này: 404
 */
 const config = require('../config');
 
@@ -59,4 +64,23 @@ async function xacThuc(username, password) {
   };
 }
 
-module.exports = { xacThuc };
+/* Tra hồ sơ theo tên đăng nhập (dùng cho SSO: myapps đã xác thực, chỉ còn cần hồ sơ).
+   Trả về { ok: true, user } hoặc { ok: false, reason } như xacThuc. */
+async function layNguoiDung(username) {
+  const base = (config.EVN_API_BASE || '').replace(/\/+$/, '');
+  try {
+    const res = await fetch(`${base}/users/${encodeURIComponent(username)}`, {
+      headers: { 'X-Api-Key': config.EVN_API_KEY },
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+    if (res.status === 404) return { ok: false, reason: 'not_found' };
+    if (!res.ok) return { ok: false, reason: 'upstream_error' };
+    return { ok: true, user: await res.json() };
+  } catch (e) {
+    const reason = e.name === 'TimeoutError' ? 'timeout'
+                 : e instanceof SyntaxError   ? 'bad_response' : 'network_error';
+    return { ok: false, reason };
+  }
+}
+
+module.exports = { xacThuc, layNguoiDung };

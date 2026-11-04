@@ -218,10 +218,11 @@ async function doLogin() {
 }
 
 /* Đăng xuất xong tải lại trang về trang chủ: xóa hết dữ liệu người dùng trước
-   còn đang hiện trên màn hình, khách chỉ còn thấy form đăng nhập. */
+   còn đang hiện trên màn hình, khách chỉ còn thấy form đăng nhập. ?sso=form để server
+   không kiểm tra ngầm trên myapps, nếu không sẽ bị đăng nhập lại ngay. */
 async function doLogout() {
   await apiAuth('/logout', { method:'POST' }).catch(()=>{});
-  location.href = '/';
+  location.href = '/?sso=form';
 }
 
 /* ═══ ĐỔI MẬT KHẨU ═══ */

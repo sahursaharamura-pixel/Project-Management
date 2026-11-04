@@ -1,9 +1,13 @@
 /* TẦNG ROUTE — đăng nhập một lần (SSO) qua myapps.evngenco2.vn.
-   Thẻ phần mềm trên myapps trỏ vào /auth/sso. Mở thẳng phần mềm thì vẫn hiện form
-   đăng nhập cũ, không tự chuyển sang myapps.
+   Mở phần mềm khi chưa có phiên (kể cả bấm thẻ myapps, vốn trỏ về trang chủ): tự kiểm
+   tra ngầm trên myapps. Đang đăng nhập myapps thì vào thẳng; chưa thì hiện form đăng
+   nhập của phần mềm, người dùng không thấy màn hình nào của myapps.
+   /auth/sso vẫn là lối vào đầy đủ: chưa đăng nhập myapps thì myapps hỏi đăng nhập.
 
-   Mọi lỗi đều quay về trang chủ kèm ?sso=... (auth.js hiện câu giải thích trên form
-   đăng nhập), không ra trang 500:
+   Có ?sso=... thì không kiểm tra ngầm, chỉ hiện form (auth.js đọc tham số này và hiện
+   câu giải thích nếu có), nhờ đó không bị lặp chuyển trang và không ra trang 500:
+     guest    = chưa đăng nhập myapps, không báo gì
+     form     = cố ý mở form (đăng xuất xong, hoặc tài khoản nội bộ gõ thẳng /?sso=form)
      error    = không kết nối được myapps, mã hết hạn...
      evnloi   = SmartEVN gián đoạn, không lấy được hồ sơ -> đăng nhập tại địa chỉ riêng
      denied   = người dùng huỷ ở myapps
@@ -37,15 +41,24 @@ function nguonVao(req) {
 
 module.exports = () => {
 
-  /* ── TRANG CHỦ (chỉ ghi log) ──
-     Thẻ myapps trỏ nhầm về đây thì người dùng chỉ thấy form đăng nhập, không có lỗi
-     gì; dòng log này cho biết điều đó. Gắn trước express.static, nếu không static
-     đã trả index.html và request không tới được đây. */
-  router.get('/', (req, res, next) => {
-    if (sso.daBat() && !req.session.user) {
-      sso.ghiLog(`Mở trang chủ khi chưa đăng nhập (không đi qua /auth/sso) | sso=${req.query.sso || ''} | từ: ${nguonVao(req)}`);
+  /* ── MỞ PHẦN MỀM KHI CHƯA CÓ PHIÊN: KIỂM TRA NGẦM TRÊN MYAPPS ──
+     Gắn trước express.static, nếu không static đã trả index.html và request không
+     tới được đây. /du-an/:id là link trong mail nhắc nhở, giữ đúng trang sau đăng nhập. */
+  router.get(['/', '/du-an/:id'], async (req, res, next) => {
+    if (req.session.user || !sso.daBat() || req.query.sso) return next();
+    if (!await sso.myappsConSong()) {
+      sso.ghiLog('Kiểm tra ngầm: myapps không phản hồi, hiện form đăng nhập');
+      return next();
     }
-    next();
+    try {
+      const { url, oidc } = await sso.taoYeuCauDangNhap({ imLang: true });
+      req.session.oidc = { ...oidc, dich: dichNoiBo(req.originalUrl), imLang: true };
+      sso.ghiLog(`Kiểm tra ngầm phiên myapps | ${req.originalUrl}`);
+      luuRoiChuyen(req, res, url);
+    } catch (e) {
+      sso.ghiLog(`LỖI kiểm tra ngầm: ${e.message}`);
+      next();
+    }
   });
 
   /* ── LỐI VÀO SSO ── */
@@ -74,6 +87,11 @@ module.exports = () => {
   router.get('/signin-oidc', async (req, res) => {
     const oidc = req.session.oidc;
     delete req.session.oidc;
+    if (req.query.error && oidc?.imLang) {
+      sso.ghiLog(`Kiểm tra ngầm: chưa vào được qua myapps (${req.query.error}), hiện form đăng nhập`);
+      const dich = oidc.dich || '/';
+      return luuRoiChuyen(req, res, dich + (dich.includes('?') ? '&' : '?') + 'sso=guest');
+    }
     if (req.query.error) {
       sso.ghiLog(`LỖI /signin-oidc: myapps trả lỗi ${req.query.error}: ${req.query.error_description || ''}`);
       return luuRoiChuyen(req, res, '/?sso=' + (req.query.error === 'access_denied' ? 'denied' : 'error'));

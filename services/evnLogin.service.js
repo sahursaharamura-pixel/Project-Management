@@ -59,7 +59,7 @@ async function taoHoacDongBo(evnUser) {
     });
     user = await userRepo.findById(id);
   } else {
-    await userRepo.syncEvnInfo(user.id, { username, name, chuc_danh: chucDanh, phong_ban: phongBan, don_vi: donVi, don_vi_id: donViId, email });
+    await userRepo.syncEvnInfo(user.id, { username, name, ma_nhan_vien: maNhanVien, chuc_danh: chucDanh, phong_ban: phongBan, don_vi: donVi, don_vi_id: donViId, email });
     user.username = username; user.name = name;
     user.chuc_danh = chucDanh; user.don_vi_id = donViId; user.auth_source = 'evn';
   }

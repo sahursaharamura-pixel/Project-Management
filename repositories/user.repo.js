@@ -63,13 +63,14 @@ async function insertEvn({ username, name, role, ma_nhan_vien, chuc_danh, phong_
   return r.insertId;
 }
 
-/* Đồng bộ thông tin hiển thị mỗi lần đăng nhập (tên/chức danh/phòng ban/email có thể đổi).
+/* Đồng bộ thông tin từ SmartEVN mỗi lần đăng nhập (tên/chức danh/phòng ban/email có thể đổi).
+   Tài khoản nội bộ trùng tên chưa có mã NV -> được gắn mã NV từ lần đồng bộ này.
    KHÔNG đụng role và disabled -> tôn trọng chỉnh sửa của admin. */
-const syncEvnInfo = (id, { username, name, chuc_danh, phong_ban, don_vi, don_vi_id, email }) =>
+const syncEvnInfo = (id, { username, name, ma_nhan_vien, chuc_danh, phong_ban, don_vi, don_vi_id, email }) =>
   query(
-    `UPDATE users SET username = ?, name = ?, chuc_danh = ?, phong_ban = ?, don_vi = ?, don_vi_id = ?, email = ?, auth_source = 'evn'
+    `UPDATE users SET username = ?, name = ?, ma_nhan_vien = COALESCE(?, ma_nhan_vien), chuc_danh = ?, phong_ban = ?, don_vi = ?, don_vi_id = ?, email = ?, auth_source = 'evn'
      WHERE id = ?`,
-    [username, name, chuc_danh, phong_ban, don_vi, don_vi_id, email, id]
+    [username, name, ma_nhan_vien, chuc_danh, phong_ban, don_vi, don_vi_id, email, id]
   );
 
 module.exports = {

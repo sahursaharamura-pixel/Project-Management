@@ -11,6 +11,7 @@ const EVN_PASSWORD_URL = 'https://lichtuan.evngenco2.vn/Auth/QuenMatKhau';
    thích để hiện trên form đăng nhập; xoá tham số khỏi địa chỉ để tải lại không hiện lại. */
 const THONG_BAO_SSO = {
   error:    'Đăng nhập qua myapps không thành công. Vui lòng thử lại hoặc đăng nhập bằng mật khẩu.',
+  evnloi:   'Hệ thống SmartEVN đang gián đoạn nên chưa đăng nhập qua myapps được. Vui lòng đăng nhập bằng địa chỉ riêng của phần mềm, tại form bên dưới.',
   denied:   'Bạn đã huỷ đăng nhập qua myapps. Có thể đăng nhập bằng mật khẩu bên dưới.',
   noaccess: 'Tài khoản myapps của bạn chưa được cấp quyền vào phần mềm này. Vui lòng liên hệ quản trị viên.',
 };

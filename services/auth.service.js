@@ -114,21 +114,16 @@ async function dangNhap({ username, password, ip }) {
    rồi tạo/đồng bộ tài khoản, đúng một đường với đăng nhập bằng mật khẩu SmartEVN.
    - SmartEVN không có người này, hoặc tài khoản bị khóa -> "chưa được cấp quyền" (403).
      Nhờ đó tài khoản nội bộ (vd. admin) không thể vào bằng một tên EVNID trùng tên.
-   - SmartEVN đang gián đoạn: người đã từng đăng nhập bằng tài khoản EVN vẫn vào được
-     với thông tin đã lưu; người mới thì báo lỗi hạ tầng (503). */
+   - SmartEVN đang gián đoạn -> không cho vào qua myapps (503), người dùng đăng nhập
+     tại địa chỉ riêng của phần mềm. */
 async function dangNhapSso({ username, ip }) {
   const ten = String(username || '').trim();
   if (!ten) throw badRequest('myapps không trả về tên đăng nhập');
 
   const kq = await smartevn.layNguoiDung(ten);
-  let user = null;
-  if (kq.ok) {
-    user = await evnLogin.taoHoacDongBo(kq.user);
-  } else if (evnLogin.laLoiHaTang(kq.reason)) {
-    const daCo = await userRepo.findByUsername(ten);
-    if (!daCo || daCo.auth_source !== 'evn') throw new AppError(503, evnLogin.dichLoi(kq.reason));
-    user = daCo;
-  }
+  if (!kq.ok && evnLogin.laLoiHaTang(kq.reason)) throw new AppError(503, evnLogin.dichLoi(kq.reason));
+
+  const user = kq.ok ? await evnLogin.taoHoacDongBo(kq.user) : null;
   if (!user || user.disabled) throw forbidden('Tài khoản chưa được cấp quyền vào phần mềm');
   return hoanTatDangNhap(user, false, ip, 'Qua myapps');
 }

@@ -4,7 +4,8 @@
 
    Mọi lỗi đều quay về trang chủ kèm ?sso=... (auth.js hiện câu giải thích trên form
    đăng nhập), không ra trang 500:
-     error    = không kết nối được myapps/SmartEVN, mã hết hạn...
+     error    = không kết nối được myapps, mã hết hạn...
+     evnloi   = SmartEVN gián đoạn, không lấy được hồ sơ -> đăng nhập tại địa chỉ riêng
      denied   = người dùng huỷ ở myapps
      noaccess = tài khoản chưa được cấp quyền vào phần mềm */
 const express = require('express');
@@ -56,7 +57,8 @@ module.exports = () => {
       luuRoiChuyen(req, res, oidc.dich || '/');
     } catch (e) {
       if (e.status !== 403) console.error('❌ SSO: đăng nhập thất bại:', e.message);
-      luuRoiChuyen(req, res, e.status === 403 ? '/?sso=noaccess' : '/?sso=error');
+      const ma = e.status === 403 ? 'noaccess' : e.status === 503 ? 'evnloi' : 'error';
+      luuRoiChuyen(req, res, '/?sso=' + ma);
     }
   });
 
